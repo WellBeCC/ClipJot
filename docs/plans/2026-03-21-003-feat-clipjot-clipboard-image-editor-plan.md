@@ -1,7 +1,7 @@
 ---
 title: "feat: ClipJot Clipboard Image Editor — Full Implementation"
 type: feat
-status: active
+status: completed
 date: 2026-03-21
 origin:
   - docs/brainstorms/2026-03-20-annotation-layer-architecture-requirements.md
