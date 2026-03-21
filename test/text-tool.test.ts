@@ -501,22 +501,22 @@ describe("export text rendering", () => {
     expect(svg).not.toContain("background-color")
   })
 
-  test("useExport has renderTextAnnotationToImage function", () => {
+  test("text annotations are batched into SVG via serializeAnnotationsToSvg", () => {
     const source = readFileSync(
       resolve(__dirname, "../src/composables/useExport.ts"),
       "utf-8",
     )
-    expect(source).toContain("renderTextAnnotationToImage")
     expect(source).toContain("foreignObject")
+    expect(source).toContain('case "text"')
   })
 
-  test("flattenTab draws text annotations individually", () => {
+  test("serializeAnnotationsToSvg renders text via foreignObject", () => {
     const source = readFileSync(
       resolve(__dirname, "../src/composables/useExport.ts"),
       "utf-8",
     )
-    expect(source).toContain("textAnnotations")
-    expect(source).toContain('a.type === "text"')
+    expect(source).toContain("serializeAnnotationsToSvg")
+    expect(source).toContain("foreignObject")
   })
 })
 

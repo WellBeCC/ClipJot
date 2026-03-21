@@ -166,13 +166,12 @@ describe("Save-to-File via Dialog", () => {
     expect(keyboardFile).toContain("PNG Image")
   })
 
-  test("invokes write_file command to save", () => {
-    expect(keyboardFile).toContain('"write_file"')
-    expect(keyboardFile).toContain("invoke(")
+  test("delegates to saveTabToFile for writing", () => {
+    expect(keyboardFile).toContain("saveTabToFile")
   })
 
-  test("uses flattenTab to produce export blob", () => {
-    expect(keyboardFile).toContain("flattenTab(tab)")
+  test("imports save-to-file from useExport", () => {
+    expect(keyboardFile).toContain('import("./useExport")')
   })
 
   test("handles user cancellation gracefully", () => {

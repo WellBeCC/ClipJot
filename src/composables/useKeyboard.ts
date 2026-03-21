@@ -156,7 +156,7 @@ async function handleCopy(): Promise<void> {
 async function handleSaveToFile(): Promise<void> {
   const { useTabStore } = await import("./useTabStore")
   const { useToast } = await import("./useToast")
-  const { flattenTab } = await import("./useExport")
+  const { saveTabToFile } = await import("./useExport")
 
   const { activeTab } = useTabStore()
   const toast = useToast()
@@ -169,7 +169,6 @@ async function handleSaveToFile(): Promise<void> {
 
   try {
     const { save } = await import("@tauri-apps/plugin-dialog")
-    const { invoke } = await import("@tauri-apps/api/core")
 
     const filePath = await save({
       defaultPath: `${tab.name}.png`,
@@ -178,11 +177,7 @@ async function handleSaveToFile(): Promise<void> {
 
     if (!filePath) return // User cancelled
 
-    const { blob } = await flattenTab(tab)
-    const arrayBuffer = await blob.arrayBuffer()
-    const data = Array.from(new Uint8Array(arrayBuffer))
-
-    await invoke("write_file", { path: filePath, data })
+    await saveTabToFile(tab, filePath)
     toast.success("Saved to file")
   } catch (err) {
     toast.error("Save failed")
