@@ -1,6 +1,6 @@
 import { shallowRef } from "vue"
 import type { ShallowRef } from "vue"
-import type { Annotation } from "../types/annotations"
+import type { Annotation, CalloutAnnotation } from "../types/annotations"
 
 export interface AnnotationStoreState {
   annotations: ShallowRef<Annotation[]>
@@ -46,6 +46,38 @@ export function useAnnotationStore(state: AnnotationStoreState) {
     return state.annotations.value.find((a) => a.id === id)
   }
 
+  /** Returns the next sequential callout number (max existing + 1, or 1 if none). */
+  function getNextCalloutNumber(): number {
+    let max = 0
+    for (const a of state.annotations.value) {
+      if (a.type === "callout" && a.number > max) {
+        max = a.number
+      }
+    }
+    return max + 1
+  }
+
+  /** Reassign callout numbers 1, 2, 3... in array (creation) order. */
+  function renumberCallouts(): void {
+    let seq = 1
+    let changed = false
+    const updated = state.annotations.value.map((a) => {
+      if (a.type === "callout") {
+        if (a.number !== seq) {
+          changed = true
+          const renumbered: CalloutAnnotation = { ...a, number: seq }
+          seq++
+          return renumbered
+        }
+        seq++
+      }
+      return a
+    })
+    if (changed) {
+      state.annotations.value = updated
+    }
+  }
+
   return {
     annotations: state.annotations,
     addAnnotation,
@@ -53,5 +85,7 @@ export function useAnnotationStore(state: AnnotationStoreState) {
     updateAnnotation,
     insertAnnotation,
     getAnnotation,
+    getNextCalloutNumber,
+    renumberCallouts,
   }
 }

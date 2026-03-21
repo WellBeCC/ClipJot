@@ -1,8 +1,20 @@
 <script setup lang="ts">
-import type { Annotation, RectAnnotation } from "../types/annotations"
+import type {
+  Annotation,
+  RectAnnotation as RectAnnotationType,
+  EllipseAnnotation as EllipseAnnotationType,
+  ArrowAnnotation as ArrowAnnotationType,
+  LineAnnotation as LineAnnotationType,
+  CalloutAnnotation as CalloutAnnotationType,
+} from "../types/annotations"
 import { useSelection } from "../composables/useSelection"
 import { getAnnotationBounds } from "../types/annotations"
 import SelectionHandles from "./SelectionHandles.vue"
+import RectAnnotation from "./annotations/RectAnnotation.vue"
+import EllipseAnnotation from "./annotations/EllipseAnnotation.vue"
+import ArrowAnnotation from "./annotations/ArrowAnnotation.vue"
+import LineAnnotation from "./annotations/LineAnnotation.vue"
+import CalloutAnnotation from "./annotations/CalloutAnnotation.vue"
 
 defineProps<{
   annotations: Annotation[]
@@ -10,7 +22,11 @@ defineProps<{
   imageHeight: number
 }>()
 
-const { selectedIds } = useSelection()
+const { selectedIds, select } = useSelection()
+
+function onAnnotationSelect(id: string, additive: boolean): void {
+  select(id, additive)
+}
 
 function getSelectedAnnotation(
   id: string,
@@ -30,21 +46,36 @@ function getSelectedAnnotation(
   >
     <!-- Render each annotation based on type -->
     <g v-for="annotation in annotations" :key="annotation.id">
-      <!-- Placeholder: actual annotation components will be added by Units 12-15 -->
-      <!-- For now, render a simple rect outline for rect annotations -->
-      <rect
+      <!-- Rectangle annotation -->
+      <RectAnnotation
         v-if="annotation.type === 'rect'"
-        :x="annotation.x"
-        :y="annotation.y"
-        :width="(annotation as RectAnnotation).width"
-        :height="(annotation as RectAnnotation).height"
-        :stroke="annotation.strokeColor"
-        :stroke-width="annotation.strokeWidth"
-        :fill="
-          (annotation as RectAnnotation).fill
-            ? (annotation as RectAnnotation).fillColor
-            : 'none'
-        "
+        :annotation="annotation as RectAnnotationType"
+        @select="onAnnotationSelect"
+      />
+
+      <!-- Ellipse annotation -->
+      <EllipseAnnotation
+        v-else-if="annotation.type === 'ellipse'"
+        :annotation="annotation as EllipseAnnotationType"
+        @select="onAnnotationSelect"
+      />
+
+      <!-- Arrow annotation (quadratic Bezier with arrowhead) -->
+      <ArrowAnnotation
+        v-else-if="annotation.type === 'arrow'"
+        :annotation="annotation as ArrowAnnotationType"
+      />
+
+      <!-- Line annotation (simple straight line) -->
+      <LineAnnotation
+        v-else-if="annotation.type === 'line'"
+        :annotation="annotation as LineAnnotationType"
+      />
+
+      <!-- Callout annotation (numbered circle) -->
+      <CalloutAnnotation
+        v-else-if="annotation.type === 'callout'"
+        :annotation="annotation as CalloutAnnotationType"
       />
     </g>
 

@@ -3,6 +3,7 @@ import { computed } from "vue"
 import { useTabStore } from "../composables/useTabStore"
 import { useAnnotationStore } from "../composables/useAnnotationStore"
 import EmptyClipboard from "./EmptyClipboard.vue"
+import RedactionCanvas from "./RedactionCanvas.vue"
 import FreehandCanvas from "./FreehandCanvas.vue"
 import SvgAnnotationLayer from "./SvgAnnotationLayer.vue"
 
@@ -39,7 +40,14 @@ function screenToImage(
           alt="Clipboard image"
           draggable="false"
         />
-        <!-- Freehand canvas stacks above base image (z:2 in layer model) -->
+        <!-- Redaction canvas stacks above base image (z:1 in layer model) -->
+        <RedactionCanvas
+          :redaction-state="activeTab.redactionState"
+          :image-width="activeTab.imageWidth"
+          :image-height="activeTab.imageHeight"
+          :base-image-url="activeTab.imageUrl!"
+        />
+        <!-- Freehand canvas stacks above redaction (z:2 in layer model) -->
         <FreehandCanvas
           :drawing-state="activeTab.drawingState"
           :image-width="activeTab.imageWidth"

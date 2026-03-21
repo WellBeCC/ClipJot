@@ -1,0 +1,135 @@
+import { ref, watch } from "vue"
+
+export type ThemeSetting = "light" | "dark" | "system"
+
+const STORAGE_PREFIX = "clipjot-settings-"
+
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key)
+    if (raw === null) return fallback
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value))
+  } catch {
+    // Silently ignore storage errors (quota, private browsing)
+  }
+}
+
+// Module-level state (singleton)
+const theme = ref<ThemeSetting>(loadFromStorage<ThemeSetting>("theme", "system"))
+const autoCopyOnClose = ref<boolean>(loadFromStorage<boolean>("autoCopyOnClose", true))
+const autoTrimOnPaste = ref<boolean>(loadFromStorage<boolean>("autoTrimOnPaste", true))
+const trimThreshold = ref<number>(loadFromStorage<number>("trimThreshold", 10))
+const tabNamePattern = ref<string>(loadFromStorage<string>("tabNamePattern", "HH:mm:ss"))
+const hotkey = ref<string>(
+  loadFromStorage<string>("hotkey", "CommandOrControl+Shift+J"),
+)
+const autostart = ref<boolean>(loadFromStorage<boolean>("autostart", false))
+
+// Persist each setting on change
+watch(theme, (v) => saveToStorage("theme", v))
+watch(autoCopyOnClose, (v) => saveToStorage("autoCopyOnClose", v))
+watch(autoTrimOnPaste, (v) => saveToStorage("autoTrimOnPaste", v))
+watch(trimThreshold, (v) => saveToStorage("trimThreshold", v))
+watch(tabNamePattern, (v) => saveToStorage("tabNamePattern", v))
+watch(hotkey, (v) => saveToStorage("hotkey", v))
+watch(autostart, (v) => saveToStorage("autostart", v))
+
+/** Resolve effective theme (accounting for "system" preference). */
+function resolveTheme(setting: ThemeSetting): "light" | "dark" {
+  if (setting === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light"
+  }
+  return setting
+}
+
+/** Apply theme class to document root. */
+function applyTheme(setting: ThemeSetting): void {
+  const effective = resolveTheme(setting)
+  if (effective === "dark") {
+    document.documentElement.classList.add("theme-dark")
+  } else {
+    document.documentElement.classList.remove("theme-dark")
+  }
+}
+
+// Apply theme immediately on module load
+applyTheme(theme.value)
+
+// React to theme changes
+watch(theme, (v) => applyTheme(v))
+
+// Listen for OS theme changes when set to "system"
+if (typeof window !== "undefined") {
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", () => {
+      if (theme.value === "system") {
+        applyTheme("system")
+      }
+    })
+}
+
+// Update functions
+function setTheme(value: ThemeSetting): void {
+  theme.value = value
+}
+
+function setAutoCopyOnClose(value: boolean): void {
+  autoCopyOnClose.value = value
+}
+
+function setAutoTrimOnPaste(value: boolean): void {
+  autoTrimOnPaste.value = value
+}
+
+function setTrimThreshold(value: number): void {
+  trimThreshold.value = Math.max(0, Math.min(50, value))
+}
+
+function setTabNamePattern(value: string): void {
+  tabNamePattern.value = value
+}
+
+function setHotkey(value: string): void {
+  hotkey.value = value
+}
+
+function setAutostart(value: boolean): void {
+  autostart.value = value
+}
+
+export function useSettings() {
+  return {
+    // Reactive state
+    theme,
+    autoCopyOnClose,
+    autoTrimOnPaste,
+    trimThreshold,
+    tabNamePattern,
+    hotkey,
+    autostart,
+
+    // Update functions
+    setTheme,
+    setAutoCopyOnClose,
+    setAutoTrimOnPaste,
+    setTrimThreshold,
+    setTabNamePattern,
+    setHotkey,
+    setAutostart,
+
+    // Utilities
+    applyTheme,
+    resolveTheme,
+  }
+}

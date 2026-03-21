@@ -1,13 +1,29 @@
 <script setup lang="ts">
-import type { Annotation } from "../types/annotations"
+import { computed } from "vue"
+import type { Annotation, ArrowAnnotation } from "../types/annotations"
 
-defineProps<{
+const props = defineProps<{
   annotation: Annotation
   bounds: { x: number; y: number; width: number; height: number }
 }>()
 
 const handleSize = 8
 const halfHandle = handleSize / 2
+
+/** Whether this annotation is an arrow with a Bezier control point */
+const isArrow = computed(() => props.annotation.type === "arrow")
+
+/** Absolute position of the Bezier control point for arrow annotations */
+const controlPointPos = computed(() => {
+  if (!isArrow.value) return { x: 0, y: 0 }
+  const a = props.annotation as ArrowAnnotation
+  const midX = (a.x + a.endX) / 2
+  const midY = (a.y + a.endY) / 2
+  return {
+    x: midX + a.controlX,
+    y: midY + a.controlY,
+  }
+})
 
 // 8 handle positions: tl, tm, tr, mr, br, bm, bl, ml
 const handlePositions = [
@@ -76,6 +92,19 @@ function getHandleXY(
       stroke-width="1.5"
       rx="1"
       :style="{ cursor: handle.cursor, pointerEvents: 'auto' }"
+    />
+
+    <!-- Bezier control point handle for arrow annotations -->
+    <circle
+      v-if="isArrow"
+      :cx="controlPointPos.x"
+      :cy="controlPointPos.y"
+      r="5"
+      fill="#AF3029"
+      stroke="white"
+      stroke-width="1.5"
+      class="bezier-control-handle"
+      :style="{ cursor: 'move', pointerEvents: 'auto' }"
     />
   </g>
 </template>

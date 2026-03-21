@@ -4,6 +4,7 @@ import { createUndoRedo } from "./useUndoRedo"
 import { createDrawingState } from "./useDrawing"
 import { createCropState } from "./useCrop"
 import { createAnnotationState } from "./useAnnotationStore"
+import { createRedactionState } from "./useRedaction"
 
 // Module-level state (singleton)
 const tabs = shallowRef<Tab[]>([])
@@ -24,6 +25,7 @@ function initClipboardTab(): void {
     drawingState: createDrawingState(),
     cropState: createCropState(),
     annotationState: createAnnotationState(),
+    redactionState: createRedactionState(),
   }
   tabs.value = [clipboardTab]
   activeTabId.value = "clipboard"
@@ -90,6 +92,7 @@ export function useTabStore() {
       drawingState: createDrawingState(),
       cropState: createCropState(),
       annotationState: createAnnotationState(),
+      redactionState: createRedactionState(),
     }
 
     tabs.value = [...tabs.value, tab]

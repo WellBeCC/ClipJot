@@ -2,6 +2,7 @@ import type { UndoRedoInstance } from "../composables/useUndoRedo"
 import type { DrawingState } from "../composables/useDrawing"
 import type { CropState } from "../composables/useCrop"
 import type { AnnotationStoreState } from "../composables/useAnnotationStore"
+import type { RedactionState } from "../composables/useRedaction"
 
 export interface Tab {
   /** Unique tab identifier */
@@ -26,4 +27,6 @@ export interface Tab {
   cropState: CropState
   /** Per-tab SVG annotation state (annotations array) */
   annotationState: AnnotationStoreState
+  /** Per-tab redaction state (redaction regions) */
+  redactionState: RedactionState
 }

@@ -3,12 +3,11 @@ import "./assets/reset.css";
 import "./assets/flexoki.css";
 import "./assets/tokens.css";
 import App from "./App.vue";
+import { useSettings } from "./composables/useSettings";
 import { useGlobalHotkey } from "./composables/useGlobalHotkey";
 
-// Set initial theme from OS preference
-if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-  document.documentElement.classList.add("theme-dark");
-}
+// Initialize settings — applies persisted theme (or system default) immediately
+useSettings();
 
 createApp(App).mount("#app");
 
