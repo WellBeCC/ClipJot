@@ -6,8 +6,10 @@ import type {
   ArrowAnnotation as ArrowAnnotationType,
   LineAnnotation as LineAnnotationType,
   CalloutAnnotation as CalloutAnnotationType,
+  TextAnnotation as TextAnnotationType,
 } from "../types/annotations"
 import { useSelection } from "../composables/useSelection"
+import { useTextEditing } from "../composables/useTextEditing"
 import { getAnnotationBounds } from "../types/annotations"
 import SelectionHandles from "./SelectionHandles.vue"
 import RectAnnotation from "./annotations/RectAnnotation.vue"
@@ -15,12 +17,23 @@ import EllipseAnnotation from "./annotations/EllipseAnnotation.vue"
 import ArrowAnnotation from "./annotations/ArrowAnnotation.vue"
 import LineAnnotation from "./annotations/LineAnnotation.vue"
 import CalloutAnnotation from "./annotations/CalloutAnnotation.vue"
+import TextAnnotation from "./annotations/TextAnnotation.vue"
 
 defineProps<{
   annotations: Annotation[]
   imageWidth: number
   imageHeight: number
 }>()
+
+const emit = defineEmits<{
+  "start-text-editing": [id: string]
+}>()
+
+const { editingAnnotationId } = useTextEditing()
+
+function onStartTextEditing(id: string): void {
+  emit("start-text-editing", id)
+}
 
 const { selectedIds, select } = useSelection()
 
@@ -76,6 +89,15 @@ function getSelectedAnnotation(
       <CalloutAnnotation
         v-else-if="annotation.type === 'callout'"
         :annotation="annotation as CalloutAnnotationType"
+      />
+
+      <!-- Text annotation (rich text box) -->
+      <TextAnnotation
+        v-else-if="annotation.type === 'text'"
+        :annotation="annotation as TextAnnotationType"
+        :is-editing="editingAnnotationId === annotation.id"
+        @select="onAnnotationSelect"
+        @start-editing="onStartTextEditing"
       />
     </g>
 

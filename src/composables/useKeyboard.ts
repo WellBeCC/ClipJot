@@ -1,0 +1,279 @@
+import type { ToolId } from "../types/tools"
+
+/**
+ * Tool selection via number keys (1-0).
+ * Maps keyboard digits to tool IDs in toolbar order.
+ */
+export const TOOL_KEY_MAP: Record<string, ToolId> = {
+  "1": "select",
+  "2": "pen",
+  "3": "pencil",
+  "4": "marker",
+  "5": "eraser",
+  "6": "arrow",
+  "7": "line",
+  "8": "rect",
+  "9": "ellipse",
+  "0": "crop",
+}
+
+/** Minimum interval between Cmd+C executions (milliseconds). */
+const COPY_DEBOUNCE_MS = 300
+
+let lastCopyTime = 0
+let isInitialized = false
+
+/**
+ * Check whether the event target is an editable element
+ * (input, textarea, contenteditable) where we should NOT intercept keys.
+ */
+function isTextEditing(e: KeyboardEvent): boolean {
+  const target = e.target as HTMLElement | null
+  if (!target) return false
+  const tag = target.tagName
+  if (tag === "INPUT" || tag === "TEXTAREA") return true
+  if (target.isContentEditable) return true
+  return false
+}
+
+/**
+ * Initialize global keyboard shortcut handler.
+ * Registers a single `keydown` listener on `window`.
+ * Idempotent — calling multiple times is safe.
+ */
+export function useKeyboard(): { destroy: () => void } {
+  if (isInitialized) {
+    return { destroy: () => {} }
+  }
+  isInitialized = true
+
+  function handleKeyDown(e: KeyboardEvent): void {
+    const mod = e.metaKey || e.ctrlKey
+
+    // --- Cmd+C: Copy flattened image ---
+    if (mod && e.key === "c" && !e.shiftKey) {
+      // Don't intercept text selection copy in text inputs
+      if (isTextEditing(e)) return
+
+      e.preventDefault()
+
+      const now = Date.now()
+      if (now - lastCopyTime < COPY_DEBOUNCE_MS) return
+      lastCopyTime = now
+
+      void handleCopy()
+      return
+    }
+
+    // --- Cmd+S: Save to file ---
+    if (mod && e.key === "s" && !e.shiftKey) {
+      e.preventDefault()
+      void handleSaveToFile()
+      return
+    }
+
+    // --- Cmd+W: Close active tab ---
+    if (mod && e.key === "w" && !e.shiftKey) {
+      e.preventDefault()
+      void handleCloseTab()
+      return
+    }
+
+    // --- Cmd+Shift+Z or Cmd+Y: Redo ---
+    if (mod && ((e.key === "z" && e.shiftKey) || (e.key === "y" && !e.shiftKey))) {
+      e.preventDefault()
+      handleRedo()
+      return
+    }
+
+    // --- Cmd+Z: Undo ---
+    if (mod && e.key === "z" && !e.shiftKey) {
+      e.preventDefault()
+      handleUndo()
+      return
+    }
+
+    // --- Delete / Backspace: Delete selected annotations ---
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (isTextEditing(e)) return
+      e.preventDefault()
+      handleDeleteSelected()
+      return
+    }
+
+    // --- Escape: Deselect / cancel crop ---
+    if (e.key === "Escape") {
+      e.preventDefault()
+      handleEscape()
+      return
+    }
+
+    // --- Number keys: Tool selection (only when not editing text) ---
+    if (!mod && !e.shiftKey && !e.altKey && TOOL_KEY_MAP[e.key]) {
+      if (isTextEditing(e)) return
+      e.preventDefault()
+      handleToolSelect(TOOL_KEY_MAP[e.key])
+      return
+    }
+  }
+
+  window.addEventListener("keydown", handleKeyDown)
+
+  function destroy(): void {
+    window.removeEventListener("keydown", handleKeyDown)
+    isInitialized = false
+  }
+
+  return { destroy }
+}
+
+// --- Handler implementations (lazy-import to avoid circular deps) ---
+
+async function handleCopy(): Promise<void> {
+  const { useTabStore } = await import("./useTabStore")
+  const { useToast } = await import("./useToast")
+  const { copyTabToClipboard } = await import("./useExport")
+
+  const { activeTab, markTabCopied } = useTabStore()
+  const toast = useToast()
+  const tab = activeTab.value
+
+  if (!tab?.imageUrl) {
+    toast.error("Nothing to copy")
+    return
+  }
+
+  try {
+    await copyTabToClipboard(tab)
+    markTabCopied(tab.id)
+    toast.success("Copied to clipboard")
+  } catch (err) {
+    toast.error("Copy failed")
+    console.error("Cmd+C copy failed:", err)
+  }
+}
+
+async function handleSaveToFile(): Promise<void> {
+  const { useTabStore } = await import("./useTabStore")
+  const { useToast } = await import("./useToast")
+  const { flattenTab } = await import("./useExport")
+
+  const { activeTab } = useTabStore()
+  const toast = useToast()
+  const tab = activeTab.value
+
+  if (!tab?.imageUrl) {
+    toast.error("Nothing to save")
+    return
+  }
+
+  try {
+    const { save } = await import("@tauri-apps/plugin-dialog")
+    const { invoke } = await import("@tauri-apps/api/core")
+
+    const filePath = await save({
+      defaultPath: `${tab.name}.png`,
+      filters: [{ name: "PNG Image", extensions: ["png"] }],
+    })
+
+    if (!filePath) return // User cancelled
+
+    const { blob } = await flattenTab(tab)
+    const arrayBuffer = await blob.arrayBuffer()
+    const data = Array.from(new Uint8Array(arrayBuffer))
+
+    await invoke("write_file", { path: filePath, data })
+    toast.success("Saved to file")
+  } catch (err) {
+    toast.error("Save failed")
+    console.error("Cmd+S save failed:", err)
+  }
+}
+
+async function handleCloseTab(): Promise<void> {
+  const { useTabStore } = await import("./useTabStore")
+
+  const { activeTab, requestCloseTab } = useTabStore()
+  const tab = activeTab.value
+  if (!tab || tab.type === "clipboard") return
+
+  await requestCloseTab(tab.id)
+}
+
+function handleUndo(): void {
+  // Sync import via module cache (already loaded by app)
+  import("./useTabStore").then(({ useTabStore }) => {
+    const { activeTab } = useTabStore()
+    const tab = activeTab.value
+    if (!tab) return
+    tab.undoRedo.undo()
+  })
+}
+
+function handleRedo(): void {
+  import("./useTabStore").then(({ useTabStore }) => {
+    const { activeTab } = useTabStore()
+    const tab = activeTab.value
+    if (!tab) return
+    tab.undoRedo.redo()
+  })
+}
+
+function handleDeleteSelected(): void {
+  Promise.all([
+    import("./useSelection"),
+    import("./useTabStore"),
+    import("./useAnnotationStore"),
+  ]).then(([selectionMod, tabMod, annotationMod]) => {
+    const { selectedIds, deselect } = selectionMod.useSelection()
+    const { activeTab } = tabMod.useTabStore()
+    const tab = activeTab.value
+    if (!tab || selectedIds.value.size === 0) return
+
+    const store = annotationMod.useAnnotationStore(tab.annotationState)
+
+    for (const id of selectedIds.value) {
+      store.removeAnnotation(id)
+    }
+    deselect()
+  })
+}
+
+function handleEscape(): void {
+  Promise.all([import("./useSelection"), import("./useTabStore"), import("./useToolStore")]).then(
+    ([selectionMod, tabMod, toolMod]) => {
+      const { deselect, hasSelection } = selectionMod.useSelection()
+      const { activeTab } = tabMod.useTabStore()
+      const { activeTool, setTool } = toolMod.useToolStore()
+      const tab = activeTab.value
+
+      // If crop tool is active, cancel crop and switch to select
+      if (activeTool.value === "crop") {
+        if (tab) {
+          tab.cropState.cropBounds.value = null
+          tab.cropState.showTrimOverlay.value = false
+        }
+        setTool("select")
+        return
+      }
+
+      // Otherwise deselect
+      if (hasSelection.value) {
+        deselect()
+        return
+      }
+
+      // Switch to select tool as final fallback
+      if (activeTool.value !== "select") {
+        setTool("select")
+      }
+    },
+  )
+}
+
+function handleToolSelect(toolId: ToolId): void {
+  import("./useToolStore").then(({ useToolStore }) => {
+    const { setTool } = useToolStore()
+    setTool(toolId)
+  })
+}

@@ -175,6 +175,49 @@ export function useTabStore() {
     triggerRef(tabs)
   }
 
+  /**
+   * Request to close a tab, implementing the auto-copy + close-warning matrix.
+   *
+   * - No edits → close immediately, returns 'closed'
+   * - Auto-copy ON + uncopied edits → copy then close, returns 'closed'
+   * - Auto-copy OFF + uncopied edits → returns 'needs-warning' (UI shows dialog)
+   */
+  async function requestCloseTab(
+    tabId: string,
+  ): Promise<"closed" | "needs-warning"> {
+    const tab = tabs.value.find((t) => t.id === tabId)
+    if (!tab || tab.type === "clipboard") return "closed"
+
+    const hasUncopiedEdits =
+      !tab.copiedSinceLastEdit && tab.undoRedo.isEdited.value
+
+    if (!hasUncopiedEdits) {
+      closeTab(tabId)
+      return "closed"
+    }
+
+    // Lazy-import settings to avoid circular dependencies
+    const { useSettings } = await import("./useSettings")
+    const { autoCopyOnClose } = useSettings()
+
+    if (autoCopyOnClose.value) {
+      // Auto-copy enabled: copy then close
+      try {
+        const { copyTabToClipboard } = await import("./useExport")
+        await copyTabToClipboard(tab)
+        markTabCopied(tabId)
+      } catch (err) {
+        console.error("Auto-copy on close failed:", err)
+        // Still close — user chose auto-copy, failure shouldn't block close
+      }
+      closeTab(tabId)
+      return "closed"
+    }
+
+    // Auto-copy disabled: needs user confirmation
+    return "needs-warning"
+  }
+
   return {
     tabs,
     activeTabId,
@@ -188,5 +231,6 @@ export function useTabStore() {
     renameTab,
     markTabEdited,
     markTabCopied,
+    requestCloseTab,
   }
 }

@@ -1,6 +1,7 @@
 import type { Tab } from "../types/tab"
-import type { Annotation } from "../types/annotations"
+import type { Annotation, TextAnnotation } from "../types/annotations"
 import { renderRedactionRegion } from "./useRedaction"
+import { sanitizeHtml } from "./useTextEditing"
 
 export interface ExportResult {
   blob: Blob
@@ -68,7 +69,15 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
     svgBitmap.close()
   }
 
-  // Future: draw text overlays
+  // Draw text annotations via individual foreignObject SVGs
+  const textAnnotations = tab.annotationState.annotations.value.filter(
+    (a): a is TextAnnotation => a.type === "text",
+  )
+  for (const ta of textAnnotations) {
+    const textBitmap = await renderTextAnnotationToImage(ta)
+    ctx.drawImage(textBitmap, ta.x, ta.y)
+    textBitmap.close()
+  }
 
   // Export as PNG
   const blob = await canvas.convertToBlob({ type: "image/png" })
@@ -166,9 +175,29 @@ export function serializeAnnotationsToSvg(
         )
         break
       }
-      case "text":
-        // Text annotations are handled separately (HTML overlay)
+      case "text": {
+        const bgFill = a.fill
+          ? `background-color: ${a.fillColor};`
+          : ""
+        const borderStyle = a.strokeWidth > 0
+          ? `border: ${a.strokeWidth}px solid ${a.strokeColor};`
+          : ""
+        const safeHtml = sanitizeHtml(a.htmlContent)
+        parts.push(
+          `<foreignObject x="${a.x}" y="${a.y}" width="${a.width}" height="${a.height}">` +
+            `<div xmlns="http://www.w3.org/1999/xhtml" style="` +
+            `font-family: ${a.fontFamily}; font-size: ${a.fontSize}px; ` +
+            `color: ${a.strokeColor}; ${bgFill} ${borderStyle} ` +
+            `width: ${a.width}px; height: ${a.height}px; ` +
+            `padding: 4px; box-sizing: border-box; ` +
+            `word-wrap: break-word; white-space: pre-wrap; line-height: 1.4; ` +
+            `overflow: hidden;">` +
+            safeHtml +
+            `</div>` +
+            `</foreignObject>`,
+        )
         break
+      }
     }
   }
 
@@ -186,6 +215,33 @@ async function renderAnnotationsToImage(
   height: number,
 ): Promise<ImageBitmap> {
   const svgString = serializeAnnotationsToSvg(annotations, width, height)
+  const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" })
+  return createImageBitmap(blob)
+}
+
+/**
+ * Render a single text annotation to an ImageBitmap.
+ * Uses foreignObject in an SVG wrapper for HTML→bitmap conversion.
+ */
+async function renderTextAnnotationToImage(
+  a: TextAnnotation,
+): Promise<ImageBitmap> {
+  const bgFill = a.fill ? `background-color: ${a.fillColor};` : ""
+  const borderStyle =
+    a.strokeWidth > 0 ? `border: ${a.strokeWidth}px solid ${a.strokeColor};` : ""
+  const safeHtml = sanitizeHtml(a.htmlContent)
+  const svgString =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${a.width}" height="${a.height}">` +
+    `<foreignObject width="${a.width}" height="${a.height}">` +
+    `<div xmlns="http://www.w3.org/1999/xhtml" style="` +
+    `font-family: ${a.fontFamily}; font-size: ${a.fontSize}px; ` +
+    `color: ${a.strokeColor}; ${bgFill} ${borderStyle} ` +
+    `width: ${a.width}px; height: ${a.height}px; ` +
+    `padding: 4px; box-sizing: border-box; ` +
+    `word-wrap: break-word; white-space: pre-wrap; line-height: 1.4; ` +
+    `overflow: hidden;">` +
+    safeHtml +
+    `</div></foreignObject></svg>`
   const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" })
   return createImageBitmap(blob)
 }
