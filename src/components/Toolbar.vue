@@ -48,6 +48,11 @@ const tools: ToolDef[] = [
   { id: "redact", icon: ShieldOff, label: "Redact (R)" },
 ];
 
+defineProps<{
+  canUndo?: boolean;
+  canRedo?: boolean;
+}>();
+
 const { activeTool, setTool } = useToolStore();
 
 const emit = defineEmits<{
@@ -86,11 +91,13 @@ function handleToolSelect(toolId: ToolId): void {
       <ActionButton
         :icon="Undo2"
         label="Undo (⌘Z)"
+        :disabled="!canUndo"
         @click="emit('undo')"
       />
       <ActionButton
         :icon="Redo2"
         label="Redo (⌘⇧Z)"
+        :disabled="!canRedo"
         @click="emit('redo')"
       />
 

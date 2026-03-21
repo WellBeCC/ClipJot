@@ -193,39 +193,38 @@ describe("Tab Store — Editing Tab Lifecycle", () => {
   })
 })
 
-describe("Tab Store — duplicateClipboardTab", () => {
-  test("useTabStore.ts exports duplicateClipboardTab", () => {
+describe("Tab Store — duplicateActiveTab", () => {
+  test("useTabStore.ts exports duplicateActiveTab", () => {
     const content = readFileSync(
       resolve(composablesDir, "useTabStore.ts"),
       "utf-8",
     )
-    expect(content).toContain("duplicateClipboardTab")
+    expect(content).toContain("duplicateActiveTab")
   })
 
-  test("duplicateClipboardTab returns null when clipboard has no image", () => {
+  test("duplicateActiveTab returns null when active tab has no image", () => {
     const content = readFileSync(
       resolve(composablesDir, "useTabStore.ts"),
       "utf-8",
     )
-    const fnStart = content.indexOf("function duplicateClipboardTab")
+    const fnStart = content.indexOf("function duplicateActiveTab")
     const fnEnd = content.indexOf("\n  }", fnStart)
     const fnBody = content.slice(fnStart, fnEnd)
-    expect(fnBody).toContain("!clipboard?.imageUrl")
+    expect(fnBody).toContain("!source?.imageUrl")
     expect(fnBody).toContain("return null")
   })
 
-  test("duplicateClipboardTab calls createEditingTab with clipboard image", () => {
+  test("duplicateActiveTab creates a new editing tab from the active tab", () => {
     const content = readFileSync(
       resolve(composablesDir, "useTabStore.ts"),
       "utf-8",
     )
-    const fnStart = content.indexOf("function duplicateClipboardTab")
+    const fnStart = content.indexOf("function duplicateActiveTab")
     const fnEnd = content.indexOf("\n  }", fnStart)
     const fnBody = content.slice(fnStart, fnEnd)
-    expect(fnBody).toContain("createEditingTab(")
-    expect(fnBody).toContain("clipboard.imageUrl")
-    expect(fnBody).toContain("clipboard.imageWidth")
-    expect(fnBody).toContain("clipboard.imageHeight")
+    expect(fnBody).toContain("source.imageUrl")
+    expect(fnBody).toContain("source.imageWidth")
+    expect(fnBody).toContain("source.imageHeight")
   })
 })
 

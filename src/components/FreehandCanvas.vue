@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue"
+import { ref, computed, onMounted, onUnmounted, watch } from "vue"
 import { getStroke } from "perfect-freehand"
 import type { StrokeOptions } from "perfect-freehand"
 import type { FreehandStroke } from "../types/freehand"
@@ -10,6 +10,7 @@ import type { FreehandToolSettings } from "../composables/useToolStore"
 import { isFreehandTool } from "../types/tools"
 import { getSvgPathFromStroke } from "../composables/useDrawing"
 import type { DrawingState } from "../composables/useDrawing"
+import { useTabStore } from "../composables/useTabStore"
 
 const props = defineProps<{
   drawingState: DrawingState
@@ -33,6 +34,12 @@ let strokeSettings: FreehandToolSettings | null = null
 let strokeCompositeOp: GlobalCompositeOperation = "source-over"
 
 const { activeTool, getToolSettings } = useToolStore()
+const { activeTab, duplicateActiveTab } = useTabStore()
+
+/** Only capture pointer events when a freehand tool is active */
+const pointerEventsStyle = computed(() =>
+  isFreehandTool(activeTool.value) ? "auto" : "none",
+)
 
 onMounted(() => {
   const canvas = canvasRef.value
@@ -75,6 +82,12 @@ function pointerToImage(e: PointerEvent): { x: number; y: number } | null {
 function onPointerDown(e: PointerEvent): void {
   if (!ctx || !isFreehandTool(activeTool.value)) return
   if (e.button !== 0) return // Left click only
+
+  // Auto-duplicate clipboard tab on first interaction (Bug 3 fix)
+  if (activeTab.value?.type === "clipboard") {
+    duplicateActiveTab()
+    return // The tab switch will re-mount; let the next pointerdown proceed
+  }
 
   // Cache the viewport container for the duration of this stroke
   viewportEl =
@@ -197,7 +210,11 @@ function onPointerUp(_e: PointerEvent): void {
   <canvas
     ref="canvasRef"
     class="freehand-canvas"
-    :style="{ width: imageWidth + 'px', height: imageHeight + 'px' }"
+    :style="{
+      width: imageWidth + 'px',
+      height: imageHeight + 'px',
+      pointerEvents: pointerEventsStyle,
+    }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -209,7 +226,7 @@ function onPointerUp(_e: PointerEvent): void {
   position: absolute;
   top: 0;
   left: 0;
-  pointer-events: auto;
+  /* pointer-events is set dynamically via :style binding */
   touch-action: none;
 }
 </style>

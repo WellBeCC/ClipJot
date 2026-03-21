@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import TabBar from "./TabBar.vue";
 import Toolbar from "./Toolbar.vue";
 import SubToolbar from "./SubToolbar.vue";
@@ -11,11 +11,14 @@ import { readClipboardImage } from "../composables/useClipboard";
 import { copyTabToClipboard, saveTabToFile } from "../composables/useExport";
 import { useMenuEvents } from "../composables/useMenuEvents";
 
-const { activeTab, updateClipboardImage, markTabCopied, duplicateClipboardTab } =
+const { activeTab, updateClipboardImage, markTabCopied, duplicateActiveTab } =
   useTabStore();
 const { success, error } = useToast();
 
 const showSettings = ref(false);
+
+const canUndo = computed(() => activeTab.value?.undoRedo.canUndo.value ?? false);
+const canRedo = computed(() => activeTab.value?.undoRedo.canRedo.value ?? false);
 
 function toggleSettings(): void {
   showSettings.value = !showSettings.value;
@@ -110,7 +113,7 @@ function handleTrim(): void {
 }
 
 function handleDuplicate(): void {
-  duplicateClipboardTab();
+  duplicateActiveTab();
 }
 </script>
 
@@ -118,6 +121,8 @@ function handleDuplicate(): void {
   <div class="app-shell">
     <TabBar />
     <Toolbar
+      :can-undo="canUndo"
+      :can-redo="canRedo"
       @copy="handleCopy"
       @save="handleSave"
       @undo="handleUndo"

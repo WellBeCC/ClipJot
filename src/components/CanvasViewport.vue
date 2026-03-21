@@ -3,9 +3,31 @@ import { computed, nextTick, ref, watch, onMounted, onUnmounted } from "vue"
 import { useTabStore } from "../composables/useTabStore"
 import { useAnnotationStore } from "../composables/useAnnotationStore"
 import { useTextEditing } from "../composables/useTextEditing"
+import { useToolStore } from "../composables/useToolStore"
+import { useSelection } from "../composables/useSelection"
+import { useRedactionStore } from "../composables/useRedaction"
 import { createViewportContext } from "../composables/useZoom"
 import { createSvgMutateCommand } from "../commands/SvgMutateCommand"
-import type { TextAnnotation } from "../types/annotations"
+import { createSvgCreateCommand } from "../commands/SvgCreateCommand"
+import { createRedactionCreateCommand } from "../commands/RedactionCreateCommand"
+import {
+  isFreehandTool,
+  isShapeTool,
+  isLineTool,
+} from "../types/tools"
+import type {
+  TextAnnotation,
+  ArrowAnnotation,
+  LineAnnotation,
+  CalloutAnnotation,
+  Annotation,
+} from "../types/annotations"
+import type { RedactionRegion } from "../types/redaction"
+import {
+  SOLID_DEFAULT_COLOR,
+  BLUR_DEFAULT,
+  PIXELATE_DEFAULT,
+} from "../types/redaction"
 import EmptyClipboard from "./EmptyClipboard.vue"
 import RedactionCanvas from "./RedactionCanvas.vue"
 import FreehandCanvas from "./FreehandCanvas.vue"
@@ -13,7 +35,7 @@ import SvgAnnotationLayer from "./SvgAnnotationLayer.vue"
 import TextEditor from "./TextEditor.vue"
 import ContextualPanel from "./ContextualPanel.vue"
 
-const { activeTab } = useTabStore()
+const { activeTab, duplicateActiveTab } = useTabStore()
 
 const hasImage = computed(() => activeTab.value?.imageUrl != null)
 
@@ -63,6 +85,388 @@ function onTextDelete(annotationId: string): void {
   if (!annotationStore.value) return
   cancelEdit()
   annotationStore.value.removeAnnotation(annotationId)
+}
+
+// ── Tool store & selection ──────────────────────────────────────────────────
+
+const {
+  activeTool,
+  getShapeSettings,
+  getLineSettings,
+  getCalloutSettings,
+  getTextSettings,
+  getRedactSettings,
+} = useToolStore()
+const { select, deselect } = useSelection()
+
+/** Whether the interaction overlay should capture pointer events */
+const overlayPointerEvents = computed(() => {
+  const tool = activeTool.value
+  if (isFreehandTool(tool) || tool === "crop") return "none"
+  return "auto"
+})
+
+// ── Auto-duplicate clipboard tab on first interaction ───────────────────────
+
+/**
+ * Check if active tab is a clipboard tab and auto-duplicate it before editing.
+ * Returns true if a duplication was triggered (caller should abort the current event).
+ */
+function ensureEditingTab(): boolean {
+  if (activeTab.value?.type === "clipboard") {
+    duplicateActiveTab()
+    return true
+  }
+  return false
+}
+
+// ── Interaction layer: shape/line/callout/text/redact/select ────────────────
+
+/** Drag state for shape/line/redact creation */
+interface DragState {
+  kind: "shape" | "line" | "redact"
+  originX: number
+  originY: number
+  currentX: number
+  currentY: number
+}
+let dragState: DragState | null = null
+
+/** Reactive preview rect for shape/line/redact creation */
+const previewRect = ref<{
+  x: number
+  y: number
+  width: number
+  height: number
+} | null>(null)
+
+/** Reactive preview line for arrow/line creation */
+const previewLine = ref<{
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+} | null>(null)
+
+function onOverlayPointerDown(e: PointerEvent): void {
+  if (e.button !== 0) return // Left click only
+
+  // Auto-duplicate clipboard tab on first interaction
+  if (ensureEditingTab()) return
+
+  const tab = activeTab.value
+  if (!tab) return
+
+  const rect = viewportRef.value?.getBoundingClientRect()
+  if (!rect) return
+  const img = screenToImage(e.clientX - rect.left, e.clientY - rect.top)
+
+  const tool = activeTool.value
+
+  // ── Select tool ──
+  if (tool === "select") {
+    // For now: deselect on empty-area click (annotations handle their own selection)
+    deselect()
+    return
+  }
+
+  // ── Shape tools (rect, ellipse) ──
+  if (isShapeTool(tool)) {
+    dragState = {
+      kind: "shape",
+      originX: img.x,
+      originY: img.y,
+      currentX: img.x,
+      currentY: img.y,
+    }
+    previewRect.value = { x: img.x, y: img.y, width: 0, height: 0 }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    return
+  }
+
+  // ── Line tools (arrow, line) ──
+  if (isLineTool(tool)) {
+    dragState = {
+      kind: "line",
+      originX: img.x,
+      originY: img.y,
+      currentX: img.x,
+      currentY: img.y,
+    }
+    previewLine.value = { x1: img.x, y1: img.y, x2: img.x, y2: img.y }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    return
+  }
+
+  // ── Redact tool ──
+  if (tool === "redact") {
+    dragState = {
+      kind: "redact",
+      originX: img.x,
+      originY: img.y,
+      currentX: img.x,
+      currentY: img.y,
+    }
+    previewRect.value = { x: img.x, y: img.y, width: 0, height: 0 }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    return
+  }
+
+  // ── Callout tool (single click) ──
+  if (tool === "callout") {
+    const store = annotationStore.value
+    if (!store) return
+    const settings = getCalloutSettings()
+    const callout: CalloutAnnotation = {
+      id: crypto.randomUUID(),
+      type: "callout",
+      x: img.x,
+      y: img.y,
+      rotation: 0,
+      strokeColor: settings.fillColor,
+      strokeWidth: 0,
+      selected: false,
+      number: store.getNextCalloutNumber(),
+      radius: settings.radius,
+      fillColor: settings.fillColor,
+    }
+    const cmd = createSvgCreateCommand(callout, store.addAnnotation, (id) => {
+      store.removeAnnotation(id)
+    })
+    tab.undoRedo.push(cmd)
+    return
+  }
+
+  // ── Text tool (single click) ──
+  if (tool === "text") {
+    const store = annotationStore.value
+    if (!store) return
+    const settings = getTextSettings()
+    const text: TextAnnotation = {
+      id: crypto.randomUUID(),
+      type: "text",
+      x: img.x,
+      y: img.y,
+      width: 200,
+      height: 40,
+      rotation: 0,
+      strokeColor: settings.color,
+      strokeWidth: 0,
+      selected: false,
+      htmlContent: "",
+      fontFamily: "sans-serif",
+      fontSize: settings.fontSize,
+      fill: false,
+      fillColor: "#000000",
+    }
+    const cmd = createSvgCreateCommand(text, store.addAnnotation, (id) => {
+      store.removeAnnotation(id)
+    })
+    tab.undoRedo.push(cmd)
+    // Start editing the newly created text
+    startEditing(text.id, text.htmlContent)
+    return
+  }
+}
+
+function onOverlayPointerMove(e: PointerEvent): void {
+  if (!dragState) return
+
+  const rect = viewportRef.value?.getBoundingClientRect()
+  if (!rect) return
+  const img = screenToImage(e.clientX - rect.left, e.clientY - rect.top)
+
+  dragState.currentX = img.x
+  dragState.currentY = img.y
+
+  if (dragState.kind === "shape" || dragState.kind === "redact") {
+    let width = Math.abs(img.x - dragState.originX)
+    let height = Math.abs(img.y - dragState.originY)
+
+    // Shift constrains to square
+    if (e.shiftKey && dragState.kind === "shape") {
+      const size = Math.max(width, height)
+      width = size
+      height = size
+    }
+
+    const x =
+      img.x >= dragState.originX
+        ? dragState.originX
+        : dragState.originX - width
+    const y =
+      img.y >= dragState.originY
+        ? dragState.originY
+        : dragState.originY - height
+
+    previewRect.value = { x, y, width, height }
+  } else if (dragState.kind === "line") {
+    previewLine.value = {
+      x1: dragState.originX,
+      y1: dragState.originY,
+      x2: img.x,
+      y2: img.y,
+    }
+  }
+}
+
+/** Minimum dimension (px) for a shape/line to be committed */
+const MIN_DRAG_SIZE = 5
+
+function onOverlayPointerUp(e: PointerEvent): void {
+  if (!dragState) return
+
+  const tab = activeTab.value
+  const store = annotationStore.value
+  if (!tab || !store) {
+    resetDrag()
+    return
+  }
+
+  if (dragState.kind === "shape") {
+    const p = previewRect.value
+    if (!p || p.width < MIN_DRAG_SIZE || p.height < MIN_DRAG_SIZE) {
+      resetDrag()
+      return
+    }
+
+    const tool = activeTool.value
+    if (!isShapeTool(tool)) {
+      resetDrag()
+      return
+    }
+
+    const settings = getShapeSettings(tool)
+    const annotation: Annotation =
+      tool === "rect"
+        ? {
+            id: crypto.randomUUID(),
+            type: "rect" as const,
+            x: p.x,
+            y: p.y,
+            width: p.width,
+            height: p.height,
+            rotation: 0,
+            strokeColor: settings.color,
+            strokeWidth: settings.width,
+            selected: false,
+            fill: settings.fill,
+            fillColor: settings.fillColor,
+            fillOpacity: settings.fillOpacity,
+          }
+        : {
+            id: crypto.randomUUID(),
+            type: "ellipse" as const,
+            x: p.x,
+            y: p.y,
+            width: p.width,
+            height: p.height,
+            rotation: 0,
+            strokeColor: settings.color,
+            strokeWidth: settings.width,
+            selected: false,
+            fill: settings.fill,
+            fillColor: settings.fillColor,
+            fillOpacity: settings.fillOpacity,
+          }
+
+    const cmd = createSvgCreateCommand(annotation, store.addAnnotation, (id) => {
+      store.removeAnnotation(id)
+    })
+    tab.undoRedo.push(cmd)
+  } else if (dragState.kind === "line") {
+    const p = previewLine.value
+    if (!p) {
+      resetDrag()
+      return
+    }
+
+    const dx = Math.abs(p.x2 - p.x1)
+    const dy = Math.abs(p.y2 - p.y1)
+    if (dx < MIN_DRAG_SIZE && dy < MIN_DRAG_SIZE) {
+      resetDrag()
+      return
+    }
+
+    const tool = activeTool.value
+    if (!isLineTool(tool)) {
+      resetDrag()
+      return
+    }
+
+    const settings = getLineSettings(tool)
+
+    const annotation: Annotation =
+      tool === "arrow"
+        ? ({
+            id: crypto.randomUUID(),
+            type: "arrow" as const,
+            x: p.x1,
+            y: p.y1,
+            endX: p.x2,
+            endY: p.y2,
+            controlX: 0,
+            controlY: 0,
+            rotation: 0,
+            strokeColor: settings.color,
+            strokeWidth: settings.width,
+            selected: false,
+          } satisfies ArrowAnnotation)
+        : ({
+            id: crypto.randomUUID(),
+            type: "line" as const,
+            x: p.x1,
+            y: p.y1,
+            endX: p.x2,
+            endY: p.y2,
+            rotation: 0,
+            strokeColor: settings.color,
+            strokeWidth: settings.width,
+            selected: false,
+          } satisfies LineAnnotation)
+
+    const cmd = createSvgCreateCommand(annotation, store.addAnnotation, (id) => {
+      store.removeAnnotation(id)
+    })
+    tab.undoRedo.push(cmd)
+  } else if (dragState.kind === "redact") {
+    const p = previewRect.value
+    if (!p || p.width < MIN_DRAG_SIZE || p.height < MIN_DRAG_SIZE) {
+      resetDrag()
+      return
+    }
+
+    const settings = getRedactSettings()
+    const redactionStore = useRedactionStore(tab.redactionState)
+    const region: RedactionRegion = {
+      id: crypto.randomUUID(),
+      x: Math.round(p.x),
+      y: Math.round(p.y),
+      width: Math.round(p.width),
+      height: Math.round(p.height),
+      style: settings.style,
+      solidColor: SOLID_DEFAULT_COLOR,
+      blockSize: PIXELATE_DEFAULT,
+      blurRadius: BLUR_DEFAULT,
+    }
+
+    const cmd = createRedactionCreateCommand(
+      region,
+      redactionStore.addRegion,
+      (id) => {
+        redactionStore.removeRegion(id)
+      },
+    )
+    tab.undoRedo.push(cmd)
+  }
+
+  resetDrag()
+}
+
+function resetDrag(): void {
+  dragState = null
+  previewRect.value = null
+  previewLine.value = null
 }
 
 // ── Viewport zoom/pan context ──────────────────────────────────────────────
@@ -225,6 +629,75 @@ function onPointerUp(e: PointerEvent): void {
           @start-text-editing="onStartTextEditing"
         />
 
+        <!-- Interaction overlay for non-freehand tools (z:4 in layer model) -->
+        <div
+          class="canvas-viewport__interaction-overlay"
+          :style="{
+            width: activeTab.imageWidth + 'px',
+            height: activeTab.imageHeight + 'px',
+            pointerEvents: overlayPointerEvents,
+          }"
+          @pointerdown="onOverlayPointerDown"
+          @pointermove="onOverlayPointerMove"
+          @pointerup="onOverlayPointerUp"
+        />
+
+        <!-- Shape/line creation preview (z:5) -->
+        <svg
+          v-if="previewRect || previewLine"
+          class="canvas-viewport__preview-svg"
+          :viewBox="`0 0 ${activeTab.imageWidth} ${activeTab.imageHeight}`"
+          :width="activeTab.imageWidth"
+          :height="activeTab.imageHeight"
+        >
+          <rect
+            v-if="previewRect && activeTool === 'rect'"
+            :x="previewRect.x"
+            :y="previewRect.y"
+            :width="previewRect.width"
+            :height="previewRect.height"
+            fill="none"
+            stroke="#D14D41"
+            stroke-width="2"
+            stroke-dasharray="6 3"
+            opacity="0.7"
+          />
+          <ellipse
+            v-if="previewRect && activeTool === 'ellipse'"
+            :cx="previewRect.x + previewRect.width / 2"
+            :cy="previewRect.y + previewRect.height / 2"
+            :rx="previewRect.width / 2"
+            :ry="previewRect.height / 2"
+            fill="none"
+            stroke="#4385BE"
+            stroke-width="2"
+            stroke-dasharray="6 3"
+            opacity="0.7"
+          />
+          <rect
+            v-if="previewRect && activeTool === 'redact'"
+            :x="previewRect.x"
+            :y="previewRect.y"
+            :width="previewRect.width"
+            :height="previewRect.height"
+            fill="rgba(0,0,0,0.3)"
+            stroke="#000"
+            stroke-width="1"
+            stroke-dasharray="4 2"
+          />
+          <line
+            v-if="previewLine"
+            :x1="previewLine.x1"
+            :y1="previewLine.y1"
+            :x2="previewLine.x2"
+            :y2="previewLine.y2"
+            stroke="#D14D41"
+            stroke-width="2"
+            stroke-dasharray="6 3"
+            opacity="0.7"
+          />
+        </svg>
+
         <!-- Text editor overlay (z:50) above SVG layer -->
         <TextEditor
           v-if="editingTextAnnotation"
@@ -269,6 +742,24 @@ function onPointerUp(e: PointerEvent): void {
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.canvas-viewport__interaction-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.canvas-viewport__preview-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
 }
 
 .canvas-viewport__zoom-badge {
