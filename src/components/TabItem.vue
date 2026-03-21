@@ -1,14 +1,39 @@
 <script setup lang="ts">
+import { ref } from "vue"
 import type { Tab } from "../types/tab"
+import TabNameEditor from "./TabNameEditor.vue"
 
-defineProps<{
+const props = defineProps<{
   tab: Tab
   isActive: boolean
 }>()
 
 const emit = defineEmits<{
   select: [tabId: string]
+  close: [tabId: string]
+  rename: [tabId: string, newName: string]
 }>()
+
+const isRenaming = ref(false)
+
+function handleDoubleClick(): void {
+  if (props.tab.type === "clipboard") return
+  isRenaming.value = true
+}
+
+function handleRenameConfirm(newName: string): void {
+  isRenaming.value = false
+  emit("rename", props.tab.id, newName)
+}
+
+function handleRenameCancel(): void {
+  isRenaming.value = false
+}
+
+function handleClose(e: MouseEvent): void {
+  e.stopPropagation()
+  emit("close", props.tab.id)
+}
 </script>
 
 <template>
@@ -18,14 +43,31 @@ const emit = defineEmits<{
       'tab-item--active': isActive,
       'tab-item--clipboard': tab.type === 'clipboard',
       'tab-item--copied': tab.copiedSinceLastEdit,
+      'tab-item--editing': tab.type === 'editing',
     }"
     @click="emit('select', tab.id)"
+    @dblclick="handleDoubleClick"
   >
-    <span class="tab-item__name">{{ tab.name }}</span>
+    <TabNameEditor
+      v-if="isRenaming"
+      :current-name="tab.name"
+      @confirm="handleRenameConfirm"
+      @cancel="handleRenameCancel"
+    />
+    <span v-else class="tab-item__name">{{ tab.name }}</span>
     <span
       v-if="tab.copiedSinceLastEdit && tab.type !== 'clipboard'"
       class="tab-item__badge"
     />
+    <span
+      v-if="tab.type === 'editing'"
+      class="tab-item__close"
+      role="button"
+      aria-label="Close tab"
+      @click="handleClose"
+    >
+      &times;
+    </span>
   </button>
 </template>
 
@@ -77,5 +119,26 @@ const emit = defineEmits<{
   border-radius: 50%;
   background: var(--tab-copied);
   flex-shrink: 0;
+}
+
+.tab-item__close {
+  display: none;
+  margin-left: 2px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-secondary);
+  border-radius: 3px;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+
+.tab-item__close:hover {
+  color: var(--text-primary);
+  background: var(--surface-panel);
+}
+
+.tab-item--editing:hover .tab-item__close,
+.tab-item--editing.tab-item--active .tab-item__close {
+  display: inline-flex;
 }
 </style>
