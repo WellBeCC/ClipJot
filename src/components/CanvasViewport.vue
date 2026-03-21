@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useTabStore } from "../composables/useTabStore"
+import { useAnnotationStore } from "../composables/useAnnotationStore"
 import EmptyClipboard from "./EmptyClipboard.vue"
 import FreehandCanvas from "./FreehandCanvas.vue"
+import SvgAnnotationLayer from "./SvgAnnotationLayer.vue"
 
 const { activeTab } = useTabStore()
 
 const hasImage = computed(() => activeTab.value?.imageUrl != null)
+
+const annotationStore = computed(() =>
+  activeTab.value ? useAnnotationStore(activeTab.value.annotationState) : null,
+)
 
 /**
  * Convert screen-space offset coordinates to image-space coordinates.
@@ -40,6 +46,13 @@ function screenToImage(
           :image-height="activeTab.imageHeight"
           :undo-redo-push="(cmd) => activeTab!.undoRedo.push(cmd)"
           :screen-to-image="screenToImage"
+        />
+        <!-- SVG annotation layer stacks above freehand (z:3 in layer model) -->
+        <SvgAnnotationLayer
+          v-if="annotationStore"
+          :annotations="annotationStore.annotations.value"
+          :image-width="activeTab.imageWidth"
+          :image-height="activeTab.imageHeight"
         />
       </div>
     </template>

@@ -1,7 +1,6 @@
 import { shallowRef } from "vue"
 import type { ShallowRef } from "vue"
 import { getStroke } from "perfect-freehand"
-import type { StrokeOptions } from "perfect-freehand"
 import type { FreehandStroke, FreehandCheckpoint } from "../types/freehand"
 import { CHECKPOINT_INTERVAL } from "../types/freehand"
 
@@ -126,16 +125,4 @@ export function createDrawingState(): DrawingState {
   return state
 }
 
-/** Default stroke options for the pen tool */
-export const PEN_DEFAULTS: StrokeOptions & {
-  color: string
-  opacity: number
-} = {
-  size: 4,
-  thinning: 0.5,
-  smoothing: 0.5,
-  streamline: 0.5,
-  simulatePressure: true,
-  color: "#D14D41",
-  opacity: 1,
-}
+

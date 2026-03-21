@@ -168,19 +168,12 @@ describe("Drawing Composable", () => {
     expect(content).toContain("shallowRef<FreehandStroke[]>([])")
   })
 
-  test("useDrawing.ts exports PEN_DEFAULTS with correct values", () => {
+  test("useDrawing.ts no longer exports PEN_DEFAULTS (moved to tool store)", () => {
     const content = readFileSync(
       resolve(composablesDir, "useDrawing.ts"),
       "utf-8",
     )
-    expect(content).toContain("export const PEN_DEFAULTS")
-    expect(content).toContain("size: 4")
-    expect(content).toContain("thinning: 0.5")
-    expect(content).toContain("smoothing: 0.5")
-    expect(content).toContain("streamline: 0.5")
-    expect(content).toContain("simulatePressure: true")
-    expect(content).toContain('#D14D41')
-    expect(content).toContain("opacity: 1")
+    expect(content).not.toContain("export const PEN_DEFAULTS")
   })
 
   test("useDrawing.ts exports getSvgPathFromStroke", () => {
@@ -576,6 +569,224 @@ describe("Tab DrawingState Integration", () => {
     expect(content).toContain(
       'import { createDrawingState } from "./useDrawing"',
     )
+  })
+})
+
+// ─── FreehandCanvas Tool Store Integration ───────────────────────────────────
+
+describe("FreehandCanvas Tool Store Integration", () => {
+  test("FreehandCanvas.vue imports useToolStore and getToolSettings", () => {
+    const content = readFileSync(
+      resolve(componentsDir, "FreehandCanvas.vue"),
+      "utf-8",
+    )
+    expect(content).toContain("useToolStore")
+    expect(content).toContain("getToolSettings")
+  })
+
+  test("FreehandCanvas.vue captures tool settings at pointerdown", () => {
+    const content = readFileSync(
+      resolve(componentsDir, "FreehandCanvas.vue"),
+      "utf-8",
+    )
+    expect(content).toContain("strokeSettings = getToolSettings(activeTool.value)")
+  })
+
+  test("FreehandCanvas.vue sets destination-out for eraser", () => {
+    const content = readFileSync(
+      resolve(componentsDir, "FreehandCanvas.vue"),
+      "utf-8",
+    )
+    expect(content).toContain('"destination-out"')
+    expect(content).toContain('"eraser"')
+  })
+
+  test("FreehandCanvas.vue uses strokeSettings for live rendering", () => {
+    const content = readFileSync(
+      resolve(componentsDir, "FreehandCanvas.vue"),
+      "utf-8",
+    )
+    expect(content).toContain("strokeSettings.strokeOptions")
+    expect(content).toContain("strokeSettings.opacity")
+    expect(content).toContain("strokeSettings.color")
+    expect(content).toContain("strokeCompositeOp")
+  })
+
+  test("FreehandCanvas.vue uses strokeSettings for committed stroke", () => {
+    const content = readFileSync(
+      resolve(componentsDir, "FreehandCanvas.vue"),
+      "utf-8",
+    )
+    expect(content).toContain("options: { ...strokeSettings.strokeOptions }")
+    expect(content).toContain("color: strokeSettings.color")
+    expect(content).toContain("opacity: strokeSettings.opacity")
+    expect(content).toContain("compositeOperation: strokeCompositeOp")
+  })
+
+  test("FreehandCanvas.vue does not reference PEN_DEFAULTS", () => {
+    const content = readFileSync(
+      resolve(componentsDir, "FreehandCanvas.vue"),
+      "utf-8",
+    )
+    expect(content).not.toContain("PEN_DEFAULTS")
+  })
+})
+
+// ─── Per-Tool Settings (Unit 8) ──────────────────────────────────────────────
+
+describe("Per-Tool Settings", () => {
+  test("useToolStore.ts exports FreehandToolSettings interface", () => {
+    const content = readFileSync(
+      resolve(composablesDir, "useToolStore.ts"),
+      "utf-8",
+    )
+    expect(content).toContain("export interface FreehandToolSettings")
+    expect(content).toContain("color: string")
+    expect(content).toContain("width: number")
+    expect(content).toContain("opacity: number")
+    expect(content).toContain("strokeOptions: StrokeOptions")
+  })
+
+  test("useToolStore.ts defines defaults for all 4 freehand tools", () => {
+    const content = readFileSync(
+      resolve(composablesDir, "useToolStore.ts"),
+      "utf-8",
+    )
+    expect(content).toContain("pen:")
+    expect(content).toContain("pencil:")
+    expect(content).toContain("marker:")
+    expect(content).toContain("eraser:")
+  })
+
+  test("useToolStore.ts exports getToolSettings and updateToolSettings", () => {
+    const content = readFileSync(
+      resolve(composablesDir, "useToolStore.ts"),
+      "utf-8",
+    )
+    expect(content).toContain("getToolSettings")
+    expect(content).toContain("updateToolSettings")
+  })
+
+  test("useToolStore.ts exports activeToolSettings computed", () => {
+    const content = readFileSync(
+      resolve(composablesDir, "useToolStore.ts"),
+      "utf-8",
+    )
+    expect(content).toContain("activeToolSettings")
+    expect(content).toContain("computed<FreehandToolSettings>")
+  })
+})
+
+describe("Per-Tool Settings runtime behavior", () => {
+  test("tool store has settings for all 4 freehand tools", async () => {
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { getToolSettings } = useToolStore()
+
+    const pen = getToolSettings("pen")
+    const pencil = getToolSettings("pencil")
+    const marker = getToolSettings("marker")
+    const eraser = getToolSettings("eraser")
+
+    expect(pen).toBeDefined()
+    expect(pencil).toBeDefined()
+    expect(marker).toBeDefined()
+    expect(eraser).toBeDefined()
+  })
+
+  test("pencil settings differ from pen (thinner, sharper)", async () => {
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { getToolSettings } = useToolStore()
+
+    const pen = getToolSettings("pen")
+    const pencil = getToolSettings("pencil")
+
+    // Pencil is thinner
+    expect(pencil.width).toBeLessThan(pen.width)
+    expect((pencil.strokeOptions.size ?? 0)).toBeLessThan(
+      (pen.strokeOptions.size ?? 0),
+    )
+    // Pencil has higher thinning (sharper)
+    expect((pencil.strokeOptions.thinning ?? 0)).toBeGreaterThan(
+      (pen.strokeOptions.thinning ?? 0),
+    )
+  })
+
+  test("marker has opacity < 1 and thinning: 0", async () => {
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { getToolSettings } = useToolStore()
+
+    const marker = getToolSettings("marker")
+
+    expect(marker.opacity).toBeLessThan(1)
+    expect(marker.opacity).toBe(0.4)
+    expect(marker.strokeOptions.thinning).toBe(0)
+  })
+
+  test("eraser uses destination-out composite operation", async () => {
+    // The eraser tool itself doesn't store compositeOperation — that's
+    // determined at stroke time based on tool identity. Verify the
+    // eraser defaults are reasonable for an eraser shape.
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { getToolSettings } = useToolStore()
+
+    const eraser = getToolSettings("eraser")
+    expect(eraser.width).toBeGreaterThanOrEqual(10)
+    expect(eraser.strokeOptions.thinning).toBe(0)
+    expect(eraser.strokeOptions.simulatePressure).toBe(false)
+  })
+
+  test("changing pen color doesn't affect marker color (independent settings)", async () => {
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { getToolSettings, updateToolSettings } = useToolStore()
+
+    const markerColorBefore = getToolSettings("marker").color
+    updateToolSettings("pen", { color: "#FF00FF" })
+    const markerColorAfter = getToolSettings("marker").color
+
+    expect(markerColorAfter).toBe(markerColorBefore)
+    expect(getToolSettings("pen").color).toBe("#FF00FF")
+  })
+
+  test("activeToolSettings returns correct settings when tool changes", async () => {
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { setTool, activeToolSettings, getToolSettings } =
+      useToolStore()
+
+    setTool("pen")
+    expect(activeToolSettings.value.color).toBe(getToolSettings("pen").color)
+    expect(activeToolSettings.value.width).toBe(getToolSettings("pen").width)
+
+    setTool("marker")
+    expect(activeToolSettings.value.color).toBe(getToolSettings("marker").color)
+    expect(activeToolSettings.value.width).toBe(getToolSettings("marker").width)
+    expect(activeToolSettings.value.opacity).toBe(0.4)
+
+    setTool("pencil")
+    expect(activeToolSettings.value.width).toBe(getToolSettings("pencil").width)
+  })
+
+  test("updateToolSettings syncs width and strokeOptions.size", async () => {
+    const { useToolStore } = await import(
+      "../src/composables/useToolStore"
+    )
+    const { getToolSettings, updateToolSettings } = useToolStore()
+
+    updateToolSettings("pen", { width: 8 })
+    const pen = getToolSettings("pen")
+    expect(pen.width).toBe(8)
+    expect(pen.strokeOptions.size).toBe(8)
   })
 })
 

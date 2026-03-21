@@ -1,5 +1,7 @@
 import type { UndoRedoInstance } from "../composables/useUndoRedo"
 import type { DrawingState } from "../composables/useDrawing"
+import type { CropState } from "../composables/useCrop"
+import type { AnnotationStoreState } from "../composables/useAnnotationStore"
 
 export interface Tab {
   /** Unique tab identifier */
@@ -20,4 +22,8 @@ export interface Tab {
   undoRedo: UndoRedoInstance
   /** Per-tab freehand drawing state (strokes, checkpoint, replay) */
   drawingState: DrawingState
+  /** Per-tab crop state (crop bounds, trim suggestion, overlay visibility) */
+  cropState: CropState
+  /** Per-tab SVG annotation state (annotations array) */
+  annotationState: AnnotationStoreState
 }

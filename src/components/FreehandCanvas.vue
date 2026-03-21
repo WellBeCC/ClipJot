@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue"
 import { getStroke } from "perfect-freehand"
+import type { StrokeOptions } from "perfect-freehand"
 import type { FreehandStroke } from "../types/freehand"
 import type { Command } from "../types/commands"
 import { createFreehandStrokeCommand } from "../commands/FreehandStrokeCommand"
 import { useToolStore } from "../composables/useToolStore"
+import type { FreehandToolSettings } from "../composables/useToolStore"
 import { isFreehandTool } from "../types/tools"
-import { getSvgPathFromStroke, PEN_DEFAULTS } from "../composables/useDrawing"
+import { getSvgPathFromStroke } from "../composables/useDrawing"
 import type { DrawingState } from "../composables/useDrawing"
 
 const props = defineProps<{
@@ -24,7 +26,11 @@ let preStrokeSnapshot: ImageData | null = null
 let rafId: number | null = null
 let isDrawing = false
 
-const { activeTool } = useToolStore()
+/** Settings captured at pointerdown for the duration of the stroke */
+let strokeSettings: FreehandToolSettings | null = null
+let strokeCompositeOp: GlobalCompositeOperation = "source-over"
+
+const { activeTool, getToolSettings } = useToolStore()
 
 onMounted(() => {
   const canvas = canvasRef.value
@@ -58,6 +64,11 @@ function onPointerDown(e: PointerEvent): void {
   if (e.button !== 0) return // Left click only
 
   isDrawing = true
+
+  // Capture tool settings at stroke start so mid-stroke tool switches don't affect it
+  strokeSettings = getToolSettings(activeTool.value)
+  strokeCompositeOp =
+    activeTool.value === "eraser" ? "destination-out" : "source-over"
 
   // Save pre-stroke snapshot for O(1) live rendering (B4)
   preStrokeSnapshot = ctx.getImageData(
@@ -93,18 +104,20 @@ function onPointerMove(e: PointerEvent): void {
 /** O(1) live stroke preview: restore snapshot + render current stroke only (B4) */
 function renderLiveStroke(): void {
   rafId = null
-  if (!ctx || !preStrokeSnapshot) return
+  if (!ctx || !preStrokeSnapshot || !strokeSettings) return
 
   // Restore pre-stroke state
   ctx.putImageData(preStrokeSnapshot, 0, 0)
 
-  const outline = getStroke(currentPoints, PEN_DEFAULTS)
+  const opts: StrokeOptions = strokeSettings.strokeOptions
+  const outline = getStroke(currentPoints, opts)
   if (outline.length >= 4) {
     const pathData = getSvgPathFromStroke(outline)
     if (pathData) {
       ctx.save()
-      ctx.globalAlpha = PEN_DEFAULTS.opacity
-      ctx.fillStyle = PEN_DEFAULTS.color
+      ctx.globalAlpha = strokeSettings.opacity
+      ctx.globalCompositeOperation = strokeCompositeOp
+      ctx.fillStyle = strokeSettings.color
       ctx.fill(new Path2D(pathData))
       ctx.restore()
     }
@@ -112,7 +125,7 @@ function renderLiveStroke(): void {
 }
 
 function onPointerUp(_e: PointerEvent): void {
-  if (!isDrawing || !ctx) return
+  if (!isDrawing || !ctx || !strokeSettings) return
   isDrawing = false
 
   if (rafId !== null) {
@@ -127,17 +140,18 @@ function onPointerUp(_e: PointerEvent): void {
     }
     currentPoints = []
     preStrokeSnapshot = null
+    strokeSettings = null
     return
   }
 
-  // Create the completed stroke
+  // Create the completed stroke using captured settings
   const stroke: FreehandStroke = {
     id: crypto.randomUUID(),
     points: [...currentPoints],
-    options: { ...PEN_DEFAULTS },
-    color: PEN_DEFAULTS.color,
-    opacity: PEN_DEFAULTS.opacity,
-    compositeOperation: "source-over",
+    options: { ...strokeSettings.strokeOptions },
+    color: strokeSettings.color,
+    opacity: strokeSettings.opacity,
+    compositeOperation: strokeCompositeOp,
   }
 
   // Push to undo stack (which adds to strokes array and redraws)
@@ -154,6 +168,7 @@ function onPointerUp(_e: PointerEvent): void {
 
   currentPoints = []
   preStrokeSnapshot = null
+  strokeSettings = null
 }
 </script>
 

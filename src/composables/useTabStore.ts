@@ -2,6 +2,8 @@ import { shallowRef, ref, computed, triggerRef } from "vue"
 import type { Tab } from "../types/tab"
 import { createUndoRedo } from "./useUndoRedo"
 import { createDrawingState } from "./useDrawing"
+import { createCropState } from "./useCrop"
+import { createAnnotationState } from "./useAnnotationStore"
 
 // Module-level state (singleton)
 const tabs = shallowRef<Tab[]>([])
@@ -20,6 +22,8 @@ function initClipboardTab(): void {
     copiedSinceLastEdit: true,
     undoRedo: createUndoRedo(),
     drawingState: createDrawingState(),
+    cropState: createCropState(),
+    annotationState: createAnnotationState(),
   }
   tabs.value = [clipboardTab]
   activeTabId.value = "clipboard"
@@ -84,6 +88,8 @@ export function useTabStore() {
       copiedSinceLastEdit: false,
       undoRedo: createUndoRedo(),
       drawingState: createDrawingState(),
+      cropState: createCropState(),
+      annotationState: createAnnotationState(),
     }
 
     tabs.value = [...tabs.value, tab]
