@@ -1,10 +1,19 @@
 <script setup lang="ts">
-// Placeholder — will receive tab data and events later
+import { useTabStore } from "../composables/useTabStore"
+import TabItem from "./TabItem.vue"
+
+const { tabs, activeTabId, setActiveTab } = useTabStore()
 </script>
 
 <template>
   <div class="tab-bar">
-    <span class="tab-placeholder">Clipboard</span>
+    <TabItem
+      v-for="tab in tabs"
+      :key="tab.id"
+      :tab="tab"
+      :is-active="tab.id === activeTabId"
+      @select="setActiveTab"
+    />
   </div>
 </template>
 
@@ -18,10 +27,5 @@
   border-bottom: 1px solid var(--border-subtle);
   padding: 0 8px;
   align-items: center;
-}
-
-.tab-placeholder {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
 }
 </style>
