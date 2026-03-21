@@ -26,10 +26,17 @@ registerHotkey().then((success) => {
 });
 
 // Read clipboard on app launch — populate the clipboard tab with current image
+console.log("[ClipJot] main.ts: initiating clipboard read on launch...");
 readClipboardImage().then((image) => {
+  console.log("[ClipJot] main.ts: clipboard read result:", image);
   const { updateClipboardImage } = useTabStore();
   if (image) {
+    console.log("[ClipJot] main.ts: updating clipboard tab with image:", image.width, "x", image.height);
     updateClipboardImage(image.url, image.width, image.height);
+  } else {
+    console.log("[ClipJot] main.ts: no image returned from clipboard read");
   }
+}).catch((err) => {
+  console.error("[ClipJot] main.ts: clipboard read promise rejected:", err);
 });
 

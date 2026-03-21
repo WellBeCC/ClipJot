@@ -104,7 +104,6 @@ describe("Tab Store", () => {
       "utf-8",
     )
     expect(content).toContain("shallowRef<Tab[]>")
-    expect(content).toContain("triggerRef")
   })
 
   test("useTabStore.ts revokes old URLs on clipboard update", () => {
@@ -318,7 +317,7 @@ describe("Tab Store — renameTab", () => {
     expect(fnBody).toContain("|| tab.name")
   })
 
-  test("renameTab triggers reactivity on shallowRef", () => {
+  test("renameTab triggers reactivity via array replacement", () => {
     const content = readFileSync(
       resolve(composablesDir, "useTabStore.ts"),
       "utf-8",
@@ -326,7 +325,7 @@ describe("Tab Store — renameTab", () => {
     const fnStart = content.indexOf("function renameTab")
     const fnEnd = content.indexOf("\n  }", fnStart)
     const fnBody = content.slice(fnStart, fnEnd)
-    expect(fnBody).toContain("triggerRef(tabs)")
+    expect(fnBody).toContain("tabs.value = tabs.value.map")
   })
 })
 
@@ -347,7 +346,7 @@ describe("Tab Store — copiedSinceLastEdit lifecycle", () => {
     const fnStart = content.indexOf("function markTabEdited")
     const fnEnd = content.indexOf("\n  }", fnStart)
     const fnBody = content.slice(fnStart, fnEnd)
-    expect(fnBody).toContain("copiedSinceLastEdit = false")
+    expect(fnBody).toContain("copiedSinceLastEdit: false")
   })
 
   test("useTabStore.ts exports markTabCopied", () => {
@@ -366,7 +365,7 @@ describe("Tab Store — copiedSinceLastEdit lifecycle", () => {
     const fnStart = content.indexOf("function markTabCopied")
     const fnEnd = content.indexOf("\n  }", fnStart)
     const fnBody = content.slice(fnStart, fnEnd)
-    expect(fnBody).toContain("copiedSinceLastEdit = true")
+    expect(fnBody).toContain("copiedSinceLastEdit: true")
     expect(fnBody).toContain("undoRedo.markSaved()")
   })
 })

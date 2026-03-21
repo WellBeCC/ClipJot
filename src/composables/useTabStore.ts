@@ -1,4 +1,4 @@
-import { shallowRef, ref, computed, triggerRef } from "vue"
+import { shallowRef, ref, computed } from "vue"
 import type { Tab } from "../types/tab"
 import { createUndoRedo } from "./useUndoRedo"
 import { createDrawingState } from "./useDrawing"
@@ -62,10 +62,15 @@ export function useTabStore() {
       URL.revokeObjectURL(clipboard.imageUrl)
     }
 
-    clipboard.imageUrl = url
-    clipboard.imageWidth = width
-    clipboard.imageHeight = height
-    triggerRef(tabs) // Notify shallowRef watchers
+    // Replace the tab object (new reference) so shallowRef triggers
+    // computed chains that depend on tab properties like imageUrl
+    const updated: Tab = {
+      ...clipboard,
+      imageUrl: url,
+      imageWidth: width,
+      imageHeight: height,
+    }
+    tabs.value = tabs.value.map((t) => (t.type === "clipboard" ? updated : t))
   }
 
   /**
@@ -149,8 +154,10 @@ export function useTabStore() {
   function renameTab(tabId: string, newName: string): void {
     const tab = tabs.value.find((t) => t.id === tabId)
     if (!tab || tab.type === "clipboard") return
-    tab.name = newName.trim() || tab.name
-    triggerRef(tabs)
+    const trimmed = newName.trim() || tab.name
+    tabs.value = tabs.value.map((t) =>
+      t.id === tabId ? { ...t, name: trimmed } : t,
+    )
   }
 
   /**
@@ -159,8 +166,9 @@ export function useTabStore() {
   function markTabEdited(tabId: string): void {
     const tab = tabs.value.find((t) => t.id === tabId)
     if (!tab) return
-    tab.copiedSinceLastEdit = false
-    triggerRef(tabs)
+    tabs.value = tabs.value.map((t) =>
+      t.id === tabId ? { ...t, copiedSinceLastEdit: false } : t,
+    )
   }
 
   /**
@@ -170,9 +178,10 @@ export function useTabStore() {
   function markTabCopied(tabId: string): void {
     const tab = tabs.value.find((t) => t.id === tabId)
     if (!tab) return
-    tab.copiedSinceLastEdit = true
     tab.undoRedo.markSaved()
-    triggerRef(tabs)
+    tabs.value = tabs.value.map((t) =>
+      t.id === tabId ? { ...t, copiedSinceLastEdit: true } : t,
+    )
   }
 
   /**
