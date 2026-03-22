@@ -107,6 +107,14 @@ const overlayPointerEvents = computed(() => {
   return "auto"
 })
 
+/** Cursor style for the interaction overlay based on active tool */
+const overlayCursor = computed(() => {
+  const tool = activeTool.value
+  if (tool === "select") return "default"
+  if (tool === "text" || tool === "callout") return "text"
+  return "crosshair"
+})
+
 // ── Auto-duplicate clipboard tab on first interaction ───────────────────────
 
 /**
@@ -643,6 +651,7 @@ function onPointerUp(e: PointerEvent): void {
           class="canvas-viewport__interaction-overlay"
           :style="{
             pointerEvents: overlayPointerEvents,
+            cursor: overlayCursor,
           }"
           @pointerdown="onOverlayPointerDown"
           @pointermove="onOverlayPointerMove"
@@ -769,7 +778,7 @@ function onPointerUp(e: PointerEvent): void {
   height: 100%;
   z-index: 4;
   touch-action: none;
-  cursor: crosshair;
+  /* cursor is set dynamically via :style binding */
 }
 
 .canvas-viewport__preview-svg {
