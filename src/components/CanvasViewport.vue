@@ -601,12 +601,14 @@ function onPointerUp(e: PointerEvent): void {
     <template v-if="hasImage && activeTab">
       <div
         class="canvas-viewport__layers"
-        :style="{ transform: viewport.transformStyle.value }"
+        :style="{
+          transform: viewport.transformStyle.value,
+          width: activeTab.imageWidth + 'px',
+          height: activeTab.imageHeight + 'px',
+        }"
       >
         <img
           :src="activeTab.imageUrl!"
-          :width="activeTab.imageWidth"
-          :height="activeTab.imageHeight"
           class="canvas-viewport__base-image"
           alt="Clipboard image"
           draggable="false"
@@ -757,6 +759,8 @@ function onPointerUp(e: PointerEvent): void {
 
 .canvas-viewport__base-image {
   display: block;
+  width: 100%;
+  height: 100%;
   user-select: none;
   -webkit-user-drag: none;
 }
