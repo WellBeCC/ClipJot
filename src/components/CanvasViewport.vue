@@ -600,6 +600,10 @@ function onPointerUp(e: PointerEvent): void {
       >
         <img
           :src="activeTab.imageUrl!"
+          :style="{
+            width: activeTab.imageWidth + 'px',
+            height: activeTab.imageHeight + 'px',
+          }"
           class="canvas-viewport__base-image"
           alt="Clipboard image"
           draggable="false"
