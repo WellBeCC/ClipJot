@@ -124,36 +124,70 @@ function renderPixelate(
   }
 }
 
+/**
+ * Manual box blur applied in 3 passes (approximates Gaussian blur).
+ * Uses horizontal then vertical pass per iteration, operating on raw
+ * pixel data via getImageData/putImageData — no ctx.filter needed,
+ * so it works in all browsers including Safari/WebKit.
+ */
 function renderBlur(
   ctx: CanvasRenderingContext2D,
   region: RedactionRegion,
   baseCtx: CanvasRenderingContext2D,
 ): void {
   const { x, y, width, height, blurRadius } = region
+  if (width <= 0 || height <= 0) return
 
-  ctx.save()
+  const imageData = baseCtx.getImageData(x, y, width, height)
+  const { data } = imageData
+  const buf = new Uint8ClampedArray(data)
 
-  // Clip to the redaction region
-  ctx.beginPath()
-  ctx.rect(x, y, width, height)
-  ctx.clip()
+  // 3-pass box blur approximates Gaussian
+  for (let pass = 0; pass < 3; pass++) {
+    // Horizontal pass: data → buf
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        let r = 0, g = 0, b = 0, a = 0, count = 0
+        const minC = Math.max(0, col - blurRadius)
+        const maxC = Math.min(width - 1, col + blurRadius)
+        for (let k = minC; k <= maxC; k++) {
+          const i = (row * width + k) * 4
+          r += data[i]
+          g += data[i + 1]
+          b += data[i + 2]
+          a += data[i + 3]
+          count++
+        }
+        const j = (row * width + col) * 4
+        buf[j] = (r / count) | 0
+        buf[j + 1] = (g / count) | 0
+        buf[j + 2] = (b / count) | 0
+        buf[j + 3] = (a / count) | 0
+      }
+    }
 
-  // Apply CSS blur filter and redraw the base image section
-  ctx.filter = `blur(${blurRadius}px)`
+    // Vertical pass: buf → data
+    for (let col = 0; col < width; col++) {
+      for (let row = 0; row < height; row++) {
+        let r = 0, g = 0, b = 0, a = 0, count = 0
+        const minR = Math.max(0, row - blurRadius)
+        const maxR = Math.min(height - 1, row + blurRadius)
+        for (let k = minR; k <= maxR; k++) {
+          const i = (k * width + col) * 4
+          r += buf[i]
+          g += buf[i + 1]
+          b += buf[i + 2]
+          a += buf[i + 3]
+          count++
+        }
+        const j = (row * width + col) * 4
+        data[j] = (r / count) | 0
+        data[j + 1] = (g / count) | 0
+        data[j + 2] = (b / count) | 0
+        data[j + 3] = (a / count) | 0
+      }
+    }
+  }
 
-  // Draw a slightly expanded area to avoid edge artifacts, clipped to region
-  const pad = blurRadius * 2
-  ctx.drawImage(
-    baseCtx.canvas,
-    Math.max(0, x - pad),
-    Math.max(0, y - pad),
-    width + pad * 2,
-    height + pad * 2,
-    Math.max(0, x - pad),
-    Math.max(0, y - pad),
-    width + pad * 2,
-    height + pad * 2,
-  )
-
-  ctx.restore()
+  ctx.putImageData(imageData, x, y)
 }

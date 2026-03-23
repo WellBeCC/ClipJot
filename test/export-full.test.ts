@@ -15,32 +15,33 @@ const exportFile = readFileSync(
 // ── Layer ordering ──
 
 describe("Layer ordering", () => {
-  test("composites layers in correct order: base → redaction → freehand → SVG annotations", () => {
+  test("composites layers in correct order: base → freehand → redaction → SVG annotations", () => {
     // Verify the layer comments appear in order in the source
     const baseIdx = exportFile.indexOf("Layer 1: Base image")
-    const redactionIdx = exportFile.indexOf("Layer 2: Destructive redaction")
-    const freehandIdx = exportFile.indexOf("Layer 3: Freehand strokes")
+    const freehandIdx = exportFile.indexOf("Layer 2: Freehand strokes")
+    const redactionIdx = exportFile.indexOf("Layer 3: Destructive redaction")
     const svgIdx = exportFile.indexOf("Layer 4: SVG annotations")
 
     expect(baseIdx).toBeGreaterThan(-1)
-    expect(redactionIdx).toBeGreaterThan(-1)
     expect(freehandIdx).toBeGreaterThan(-1)
+    expect(redactionIdx).toBeGreaterThan(-1)
     expect(svgIdx).toBeGreaterThan(-1)
 
-    // Correct order
-    expect(baseIdx).toBeLessThan(redactionIdx)
-    expect(redactionIdx).toBeLessThan(freehandIdx)
-    expect(freehandIdx).toBeLessThan(svgIdx)
+    // Correct order: freehand before redaction so redactions cover drawings
+    expect(baseIdx).toBeLessThan(freehandIdx)
+    expect(freehandIdx).toBeLessThan(redactionIdx)
+    expect(redactionIdx).toBeLessThan(svgIdx)
   })
 
-  test("redaction reads base pixels from separate canvas (destructive pattern)", () => {
-    // The redaction section should create a base canvas for pixel reading
+  test("redaction uses working canvas for accumulated stacking", () => {
+    // The redaction section should apply regions sequentially to a working
+    // canvas so each region reads from the accumulated result
     const redactionSection = exportFile.slice(
-      exportFile.indexOf("Layer 2"),
       exportFile.indexOf("Layer 3"),
+      exportFile.indexOf("Layer 4"),
     )
-    expect(redactionSection).toContain("baseEl")
-    expect(redactionSection).toContain("baseCtx")
+    expect(redactionSection).toContain("workEl")
+    expect(redactionSection).toContain("workCtx")
     expect(redactionSection).toContain("renderRedactionRegion")
   })
 

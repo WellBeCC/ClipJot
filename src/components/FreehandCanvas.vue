@@ -34,7 +34,7 @@ let strokeSettings: FreehandToolSettings | null = null
 let strokeCompositeOp: GlobalCompositeOperation = "source-over"
 
 const { activeTool, getToolSettings } = useToolStore()
-const { activeTab, duplicateActiveTab } = useTabStore()
+const { activeTab, promoteClipboardTab } = useTabStore()
 
 /** Only capture pointer events when a freehand tool is active */
 const pointerEventsStyle = computed(() =>
@@ -83,14 +83,8 @@ function onPointerDown(e: PointerEvent): void {
   if (!ctx || !isFreehandTool(activeTool.value)) return
   if (e.button !== 0) return // Left click only
 
-  // Auto-duplicate clipboard tab on first interaction.
-  // We must return because the component props (drawingState, undoRedoPush)
-  // still reference the old clipboard tab. Vue will re-render with new tab's
-  // props after duplication. The user's next pointerdown will proceed normally.
-  if (activeTab.value?.type === "clipboard") {
-    duplicateActiveTab()
-    return
-  }
+  // Note: clipboard tab promotion happens after the stroke is committed
+  // in onPointerUp, so the first edit is preserved.
 
   // Cache the viewport container for the duration of this stroke
   viewportEl =
@@ -202,11 +196,18 @@ function onPointerUp(_e: PointerEvent): void {
   )
   props.undoRedoPush(cmd)
 
+  // Promote clipboard tab to editing tab after first edit
+  if (activeTab.value?.type === "clipboard") {
+    promoteClipboardTab()
+  }
+
   currentPoints = []
   preStrokeSnapshot = null
   strokeSettings = null
   viewportEl = null
 }
+
+defineExpose({ canvasRef })
 </script>
 
 <template>
@@ -229,6 +230,7 @@ function onPointerUp(_e: PointerEvent): void {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 1;
   /* pointer-events is set dynamically via :style binding */
   touch-action: none;
 }

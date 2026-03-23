@@ -71,35 +71,7 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
   ctx.drawImage(img, 0, 0)
   img.close()
 
-  // ── Layer 2: Destructive redaction ──
-  // Permanently flatten redaction regions onto the base pixels.
-  // Use regular (non-offscreen) canvases because OffscreenCanvasRenderingContext2D
-  // doesn't support ctx.filter in WebKit, breaking blur redaction.
-  if (tab.redactionState.regions.value.length > 0) {
-    // Base canvas for pixel reading (unmodified source for pixelate/blur)
-    const baseEl = document.createElement("canvas")
-    baseEl.width = imgW
-    baseEl.height = imgH
-    const baseCtx = baseEl.getContext("2d")!
-    baseCtx.drawImage(canvas, 0, 0)
-
-    // Redaction target — draw onto a regular canvas, then composite back
-    const redactEl = document.createElement("canvas")
-    redactEl.width = imgW
-    redactEl.height = imgH
-    const redactCtx = redactEl.getContext("2d")!
-    redactCtx.drawImage(canvas, 0, 0)
-
-    for (const region of tab.redactionState.regions.value) {
-      renderRedactionRegion(redactCtx, region, baseCtx)
-    }
-
-    // Composite redacted result back to the offscreen export canvas
-    ctx.clearRect(0, 0, imgW, imgH)
-    ctx.drawImage(redactEl, 0, 0)
-  }
-
-  // ── Layer 3: Freehand strokes ──
+  // ── Layer 2: Freehand strokes ──
   if (tab.drawingState.strokes.value.length > 0) {
     const freehandEl = document.createElement("canvas")
     freehandEl.width = imgW
@@ -107,6 +79,29 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
     const freehandCtx = freehandEl.getContext("2d")!
     tab.drawingState.redrawAll(freehandCtx, imgW, imgH)
     ctx.drawImage(freehandEl, 0, 0)
+  }
+
+  // ── Layer 3: Destructive redaction ──
+  // Applied after freehand so redactions cover drawings too.
+  // Each region reads from the accumulated result so they stack correctly.
+  // Use regular (non-offscreen) canvases because OffscreenCanvasRenderingContext2D
+  // doesn't support ctx.filter in WebKit, breaking blur redaction.
+  if (tab.redactionState.regions.value.length > 0) {
+    // Working canvas with base + freehand composite for redaction source
+    const workEl = document.createElement("canvas")
+    workEl.width = imgW
+    workEl.height = imgH
+    const workCtx = workEl.getContext("2d")!
+    workCtx.drawImage(canvas, 0, 0)
+
+    // Apply each redaction sequentially (reads from + writes to workCtx)
+    for (const region of tab.redactionState.regions.value) {
+      renderRedactionRegion(workCtx, region, workCtx)
+    }
+
+    // Composite redacted result back to the export canvas
+    ctx.clearRect(0, 0, imgW, imgH)
+    ctx.drawImage(workEl, 0, 0)
   }
 
   // ── Layer 4: SVG annotations (all types including text) ──

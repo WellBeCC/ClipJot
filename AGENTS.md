@@ -2,6 +2,12 @@
 
 A simple desktop application to edit images directly from the clipboard.
 
+The `docs` folder contains markdown files with information about the project, 
+its architecture, and guidelines for development:
+
+- docs/plans/2026-03-21-003-feat-clipjot-clipboard-image-editor-plan.md - the finalized plan for development
+- docs/solutions/2026-03-22-clipjot-bug-fixes-research.md - research on bug fixes
+
 ## Core Purpose
 
 ClipJot is a desktop application that allows simple jotting/editing of images directly in clipboard.

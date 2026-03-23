@@ -7,8 +7,14 @@ const props = defineProps<{
 }>()
 
 const HIT_AREA_WIDTH = 16
-const ARROWHEAD_LENGTH = 14
-const ARROWHEAD_WIDTH = 8
+
+/** Arrowhead dimensions scale with stroke width for visual balance */
+const arrowheadSize = computed(() => {
+  const sw = props.annotation.strokeWidth
+  const length = Math.max(16, 10 + sw * 3)
+  const width = Math.max(10, 6 + sw * 2)
+  return { length, width }
+})
 
 /** Absolute control point (controlX/Y are relative to the midpoint) */
 const controlAbs = computed(() => {
@@ -54,19 +60,21 @@ const arrowheadPoints = computed(() => {
   const px = -uy
   const py = ux
 
+  const { length: ahLength, width: ahWidth } = arrowheadSize.value
+
   // Arrowhead tip is at the endpoint
   const tipX = endX
   const tipY = endY
 
   // Base of arrowhead (offset back along tangent)
-  const baseX = endX - ux * ARROWHEAD_LENGTH
-  const baseY = endY - uy * ARROWHEAD_LENGTH
+  const baseX = endX - ux * ahLength
+  const baseY = endY - uy * ahLength
 
   // Two wing points
-  const leftX = baseX + px * ARROWHEAD_WIDTH
-  const leftY = baseY + py * ARROWHEAD_WIDTH
-  const rightX = baseX - px * ARROWHEAD_WIDTH
-  const rightY = baseY - py * ARROWHEAD_WIDTH
+  const leftX = baseX + px * ahWidth
+  const leftY = baseY + py * ahWidth
+  const rightX = baseX - px * ahWidth
+  const rightY = baseY - py * ahWidth
 
   return `${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}`
 })

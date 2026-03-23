@@ -183,6 +183,57 @@ export function useTabStore() {
   }
 
   /**
+   * Promote the clipboard tab to a new editing tab.
+   * Moves all state (image, drawings, annotations, redactions, crop, undo
+   * history) to a new editing tab and resets the clipboard tab to a clean
+   * slate.  Because state objects are moved (not copied), command closures
+   * in the undo stack keep working.
+   *
+   * Call this AFTER the first edit on the clipboard tab has been committed
+   * so that the edit is preserved in the new tab's undo history.
+   */
+  function promoteClipboardTab(): Tab | null {
+    const source = tabs.value.find((t) => t.type === "clipboard")
+    if (!source?.imageUrl) return null
+
+    const now = new Date()
+    const { tabNamePattern } = useSettings()
+    const name = formatTabName(now, tabNamePattern.value)
+
+    // Move all state objects to the new editing tab
+    const tab: Tab = {
+      id: crypto.randomUUID(),
+      name,
+      type: "editing",
+      imageUrl: source.imageUrl,
+      imageWidth: source.imageWidth,
+      imageHeight: source.imageHeight,
+      copiedSinceLastEdit: false,
+      undoRedo: source.undoRedo,
+      drawingState: source.drawingState,
+      cropState: source.cropState,
+      annotationState: source.annotationState,
+      redactionState: source.redactionState,
+    }
+
+    // Reset the clipboard tab with fresh empty state
+    const resetClipboard: Tab = {
+      ...source,
+      undoRedo: createUndoRedo(),
+      drawingState: createDrawingState(),
+      cropState: createCropState(),
+      annotationState: createAnnotationState(),
+      redactionState: createRedactionState(),
+    }
+
+    tabs.value = tabs.value.map((t) =>
+      t.type === "clipboard" ? resetClipboard : t,
+    ).concat(tab)
+    activeTabId.value = tab.id
+    return tab
+  }
+
+  /**
    * Close an editing tab. Revokes its blob URL, clears undo stack,
    * and switches to the previous tab or clipboard.
    * The clipboard tab cannot be closed.
@@ -298,6 +349,7 @@ export function useTabStore() {
     updateClipboardImage,
     createEditingTab,
     duplicateActiveTab,
+    promoteClipboardTab,
     closeTab,
     renameTab,
     markTabEdited,

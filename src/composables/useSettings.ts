@@ -31,6 +31,9 @@ const tabNamePattern = ref<string>(loadFromStorage<string>("tabNamePattern", "HH
 const hotkey = ref<string>(
   loadFromStorage<string>("hotkey", "CommandOrControl+Shift+J"),
 )
+const zoomSensitivity = ref<number>(
+  loadFromStorage<number>("zoomSensitivity", 3),
+)
 const autostart = ref<boolean>(loadFromStorage<boolean>("autostart", false))
 
 // Persist each setting on change
@@ -40,6 +43,7 @@ watch(autoTrimOnPaste, (v) => saveToStorage("autoTrimOnPaste", v))
 watch(trimThreshold, (v) => saveToStorage("trimThreshold", v))
 watch(tabNamePattern, (v) => saveToStorage("tabNamePattern", v))
 watch(hotkey, (v) => saveToStorage("hotkey", v))
+watch(zoomSensitivity, (v) => saveToStorage("zoomSensitivity", v))
 watch(autostart, (v) => saveToStorage("autostart", v))
 
 /** Resolve effective theme (accounting for "system" preference). */
@@ -104,6 +108,10 @@ function setHotkey(value: string): void {
   hotkey.value = value
 }
 
+function setZoomSensitivity(value: number): void {
+  zoomSensitivity.value = Math.max(1, Math.min(5, value))
+}
+
 function setAutostart(value: boolean): void {
   autostart.value = value
 }
@@ -117,6 +125,7 @@ export function useSettings() {
     trimThreshold,
     tabNamePattern,
     hotkey,
+    zoomSensitivity,
     autostart,
 
     // Update functions
@@ -126,6 +135,7 @@ export function useSettings() {
     setTrimThreshold,
     setTabNamePattern,
     setHotkey,
+    setZoomSensitivity,
     setAutostart,
 
     // Utilities

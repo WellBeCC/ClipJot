@@ -450,12 +450,12 @@ describe("CanvasViewport integration", () => {
     expect(viewportFile).toContain("<RedactionCanvas")
   })
 
-  test("RedactionCanvas is placed before FreehandCanvas in template", () => {
+  test("RedactionCanvas is placed after FreehandCanvas in template (stacks above)", () => {
     const redactionIndex = viewportFile.indexOf("<RedactionCanvas")
     const freehandIndex = viewportFile.indexOf("<FreehandCanvas")
     expect(redactionIndex).toBeGreaterThan(-1)
     expect(freehandIndex).toBeGreaterThan(-1)
-    expect(redactionIndex).toBeLessThan(freehandIndex)
+    expect(redactionIndex).toBeGreaterThan(freehandIndex)
   })
 
   test("passes redaction state from activeTab", () => {
@@ -506,22 +506,24 @@ describe("Export integration", () => {
     expect(exportFile).toContain("renderRedactionRegion")
   })
 
-  test("redaction is applied before freehand strokes", () => {
-    const redactionIndex = exportFile.indexOf("renderRedactionRegion")
-    const freehandIndex = exportFile.indexOf("redrawAll")
+  test("redaction is applied after freehand strokes (covers drawings)", () => {
+    // Search within flattenTab body to avoid matching the import statement
+    const body = exportFile.slice(exportFile.indexOf("async function flattenTab"))
+    const redactionIndex = body.indexOf("renderRedactionRegion")
+    const freehandIndex = body.indexOf("redrawAll")
     expect(redactionIndex).toBeGreaterThan(-1)
     expect(freehandIndex).toBeGreaterThan(-1)
-    expect(redactionIndex).toBeLessThan(freehandIndex)
+    expect(redactionIndex).toBeGreaterThan(freehandIndex)
   })
 
-  test("creates separate base canvas for pixel reading", () => {
-    // The export should create a separate canvas for base pixel reads
-    // to avoid reading already-redacted pixels
+  test("creates working canvas for accumulated redaction", () => {
+    // The export should apply redactions sequentially to a working canvas
+    // so each region reads from the accumulated result
     const exportBody = exportFile.slice(
       exportFile.indexOf("Destructive redaction"),
     )
-    expect(exportBody).toContain("baseEl")
-    expect(exportBody).toContain("baseCtx")
+    expect(exportBody).toContain("workEl")
+    expect(exportBody).toContain("workCtx")
   })
 })
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import type {
   Annotation,
   RectAnnotation as RectAnnotationType,
@@ -9,6 +10,7 @@ import type {
   TextAnnotation as TextAnnotationType,
 } from "../types/annotations"
 import { useSelection } from "../composables/useSelection"
+import { useToolStore } from "../composables/useToolStore"
 import { useTextEditing } from "../composables/useTextEditing"
 import { getAnnotationBounds } from "../types/annotations"
 import SelectionHandles from "./SelectionHandles.vue"
@@ -35,10 +37,21 @@ function onStartTextEditing(id: string): void {
   emit("start-text-editing", id)
 }
 
-const { selectedIds, select } = useSelection()
+const { selectedIds, select, deselect } = useSelection()
+const { activeTool } = useToolStore()
+
+/** Whether the SVG layer should be interactive (select tool active) */
+const isSelectMode = computed(() => activeTool.value === "select")
 
 function onAnnotationSelect(id: string, additive: boolean): void {
   select(id, additive)
+}
+
+/** Deselect all when clicking empty SVG background in select mode */
+function onBackgroundPointerDown(): void {
+  if (isSelectMode.value) {
+    deselect()
+  }
 }
 
 function getSelectedAnnotation(
@@ -52,8 +65,10 @@ function getSelectedAnnotation(
 <template>
   <svg
     class="svg-annotation-layer"
+    :class="{ 'svg-annotation-layer--select-mode': isSelectMode }"
     :viewBox="`0 0 ${imageWidth} ${imageHeight}`"
     xmlns="http://www.w3.org/2000/svg"
+    @pointerdown.self="onBackgroundPointerDown"
   >
     <!-- Render each annotation based on type -->
     <g v-for="annotation in annotations" :key="annotation.id">
@@ -119,7 +134,13 @@ function getSelectedAnnotation(
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 4;
   pointer-events: none;
   overflow: visible;
+}
+
+.svg-annotation-layer--select-mode {
+  pointer-events: auto;
+  cursor: default;
 }
 </style>

@@ -1,4 +1,5 @@
 import { ref, computed } from "vue"
+import { useSelection } from "./useSelection"
 import type { StrokeOptions } from "perfect-freehand"
 import type {
   ToolId,
@@ -236,6 +237,9 @@ function updateRedactSettings(patch: Partial<RedactToolSettings>): void {
 
 export function useToolStore() {
   function setTool(tool: ToolId): void {
+    if (tool !== activeTool.value) {
+      useSelection().deselect()
+    }
     activeTool.value = tool
   }
 

@@ -7,6 +7,7 @@ import { useToolStore } from "../composables/useToolStore"
 import { useSelection } from "../composables/useSelection"
 import { useRedactionStore } from "../composables/useRedaction"
 import { createViewportContext } from "../composables/useZoom"
+import { useSettings } from "../composables/useSettings"
 import { createSvgMutateCommand } from "../commands/SvgMutateCommand"
 import { createSvgCreateCommand } from "../commands/SvgCreateCommand"
 import { createRedactionCreateCommand } from "../commands/RedactionCreateCommand"
@@ -36,9 +37,16 @@ import TextEditor from "./TextEditor.vue"
 import CropOverlay from "./CropOverlay.vue"
 import ContextualPanel from "./ContextualPanel.vue"
 
-const { activeTab, duplicateActiveTab } = useTabStore()
+const { activeTab, promoteClipboardTab } = useTabStore()
 
 const hasImage = computed(() => activeTab.value?.imageUrl != null)
+
+// Ref to FreehandCanvas component — used to pass its canvas element to RedactionCanvas
+const freehandCanvasRef = ref<InstanceType<typeof FreehandCanvas> | null>(null)
+const freehandCanvasEl = computed(() => freehandCanvasRef.value?.canvasRef ?? null)
+
+// Ref to RedactionCanvas — re-render when freehand strokes change
+const redactionCanvasRef = ref<InstanceType<typeof RedactionCanvas> | null>(null)
 
 const annotationStore = computed(() =>
   activeTab.value ? useAnnotationStore(activeTab.value.annotationState) : null,
@@ -103,7 +111,7 @@ const { select, deselect } = useSelection()
 /** Whether the interaction overlay should capture pointer events */
 const overlayPointerEvents = computed(() => {
   const tool = activeTool.value
-  if (isFreehandTool(tool) || tool === "crop") return "none"
+  if (isFreehandTool(tool) || tool === "crop" || tool === "select") return "none"
   return "auto"
 })
 
@@ -115,18 +123,23 @@ const overlayCursor = computed(() => {
   return "crosshair"
 })
 
-// ── Auto-duplicate clipboard tab on first interaction ───────────────────────
+/** Cursor for the layers div (applies when overlay has pointer-events: none) */
+const layersCursor = computed(() => {
+  const tool = activeTool.value
+  if (tool === "select") return "default"
+  return undefined
+})
 
-/**
- * Check if active tab is a clipboard tab and auto-duplicate it before editing.
- * Returns true if a duplication was triggered (caller should abort the current event).
- */
-function ensureEditingTab(): boolean {
-  if (activeTab.value?.type === "clipboard") {
-    duplicateActiveTab()
-    return true
+/** Whether the current active tab is a clipboard tab that needs promotion */
+function isClipboardTab(): boolean {
+  return activeTab.value?.type === "clipboard"
+}
+
+/** Promote the clipboard tab after a command has been pushed */
+function promoteIfClipboard(): void {
+  if (isClipboardTab()) {
+    promoteClipboardTab()
   }
-  return false
 }
 
 // ── Interaction layer: shape/line/callout/text/redact/select ────────────────
@@ -159,9 +172,6 @@ const previewLine = ref<{
 
 function onOverlayPointerDown(e: PointerEvent): void {
   if (e.button !== 0) return // Left click only
-
-  // Auto-duplicate clipboard tab on first interaction
-  if (ensureEditingTab()) return
 
   const tab = activeTab.value
   if (!tab) return
@@ -243,6 +253,7 @@ function onOverlayPointerDown(e: PointerEvent): void {
       store.removeAnnotation(id)
     })
     tab.undoRedo.push(cmd)
+    promoteIfClipboard()
     return
   }
 
@@ -272,6 +283,7 @@ function onOverlayPointerDown(e: PointerEvent): void {
       store.removeAnnotation(id)
     })
     tab.undoRedo.push(cmd)
+    promoteIfClipboard()
     // Start editing the newly created text
     startEditing(text.id, text.htmlContent)
     return
@@ -469,6 +481,7 @@ function onOverlayPointerUp(e: PointerEvent): void {
     tab.undoRedo.push(cmd)
   }
 
+  promoteIfClipboard()
   resetDrag()
 }
 
@@ -501,6 +514,9 @@ const zoomPercent = computed(() => Math.round(viewport.scale.value * 100))
 const viewportRef = ref<HTMLElement | null>(null)
 let resizeObserver: ResizeObserver | null = null
 
+/** Whether the initial fit-to-window has been performed */
+let initialFitDone = false
+
 function callFitToWindow(): void {
   const el = viewportRef.value
   if (!el || el.clientWidth === 0 || el.clientHeight === 0) return
@@ -511,12 +527,18 @@ onMounted(() => {
   const el = viewportRef.value
   if (!el) return
 
+  // Only auto-fit on the initial layout; ignore subsequent resizes (e.g.
+  // sub-toolbar appearing/disappearing) to avoid resetting user zoom.
   resizeObserver = new ResizeObserver(() => {
-    callFitToWindow()
+    if (!initialFitDone) {
+      initialFitDone = true
+      callFitToWindow()
+    }
   })
   resizeObserver.observe(el)
 
   callFitToWindow()
+  initialFitDone = true
 })
 
 onUnmounted(() => {
@@ -532,12 +554,28 @@ function onImageLoad(): void {
 // Re-fit when the active image changes (nextTick ensures DOM layout is settled)
 watch(
   () => activeTab.value?.imageUrl,
-  () => void nextTick(callFitToWindow),
+  () => {
+    initialFitDone = false
+    void nextTick(callFitToWindow)
+  },
+)
+
+// Re-render redaction when freehand strokes change (redaction composites freehand)
+watch(
+  () => activeTab.value?.drawingState.strokes.value,
+  () => redactionCanvasRef.value?.renderAll(),
 )
 
 // ── Scroll-wheel zoom (Ctrl/Meta + wheel) ──────────────────────────────────
 
-const ZOOM_STEP = 0.1
+const { zoomSensitivity } = useSettings()
+
+/**
+ * Zoom factor per pixel of wheel delta, scaled by sensitivity (1–5).
+ * Uses proportional (multiplicative) zoom so behaviour feels consistent
+ * at every zoom level and trackpad pinch gestures stay smooth.
+ */
+const ZOOM_SPEED_BASE = 0.0008
 
 function onWheel(e: WheelEvent): void {
   if (!e.metaKey && !e.ctrlKey) return
@@ -553,9 +591,10 @@ function onWheel(e: WheelEvent): void {
   // Image point under cursor before zoom
   const imgPt = viewport.screenToImage(cursorX, cursorY)
 
-  // Calculate new scale
-  const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
-  const newScale = viewport.scale.value + delta
+  // Proportional zoom: multiply current scale by a factor derived from deltaY
+  const speed = ZOOM_SPEED_BASE * zoomSensitivity.value
+  const factor = Math.pow(2, -e.deltaY * speed)
+  const newScale = viewport.scale.value * factor
   viewport.setZoom(newScale)
 
   // Adjust pan so the same image point stays under the cursor
@@ -613,6 +652,7 @@ function onPointerUp(e: PointerEvent): void {
           transform: viewport.transformStyle.value,
           width: activeTab.imageWidth + 'px',
           height: activeTab.imageHeight + 'px',
+          cursor: layersCursor,
         }"
       >
         <img
@@ -622,22 +662,25 @@ function onPointerUp(e: PointerEvent): void {
           draggable="false"
           @load="onImageLoad"
         />
-        <!-- Redaction canvas stacks above base image (z:1 in layer model) -->
-        <RedactionCanvas
-          :redaction-state="activeTab.redactionState"
-          :image-width="activeTab.imageWidth"
-          :image-height="activeTab.imageHeight"
-          :base-image-url="activeTab.imageUrl!"
-        />
-        <!-- Freehand canvas stacks above redaction (z:2 in layer model) -->
+        <!-- Freehand canvas (z:1) — below redaction so redactions cover drawings -->
         <FreehandCanvas
+          ref="freehandCanvasRef"
           :drawing-state="activeTab.drawingState"
           :image-width="activeTab.imageWidth"
           :image-height="activeTab.imageHeight"
           :undo-redo-push="(cmd) => activeTab!.undoRedo.push(cmd)"
           :screen-to-image="screenToImage"
         />
-        <!-- SVG annotation layer stacks above freehand (z:3 in layer model) -->
+        <!-- Redaction canvas (z:3) — above freehand, composites base + drawings -->
+        <RedactionCanvas
+          ref="redactionCanvasRef"
+          :redaction-state="activeTab.redactionState"
+          :image-width="activeTab.imageWidth"
+          :image-height="activeTab.imageHeight"
+          :base-image-url="activeTab.imageUrl!"
+          :freehand-canvas="freehandCanvasEl"
+        />
+        <!-- SVG annotation layer (z:4) -->
         <SvgAnnotationLayer
           v-if="annotationStore"
           :annotations="annotationStore.annotations.value"
@@ -735,10 +778,15 @@ function onPointerUp(e: PointerEvent): void {
       <!-- Contextual property panel (z:30 in layer model) -->
       <ContextualPanel />
 
-      <!-- Zoom indicator badge -->
-      <div class="canvas-viewport__zoom-badge" aria-live="polite">
+      <!-- Zoom indicator badge (click to fit-to-window) -->
+      <button
+        class="canvas-viewport__zoom-badge"
+        aria-live="polite"
+        title="Reset zoom to fit window"
+        @click="callFitToWindow"
+      >
         {{ zoomPercent }}%
-      </div>
+      </button>
     </template>
     <template v-else>
       <EmptyClipboard />
@@ -776,7 +824,7 @@ function onPointerUp(e: PointerEvent): void {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 4;
+  z-index: 5;
   touch-action: none;
   /* cursor is set dynamically via :style binding */
 }
@@ -787,7 +835,7 @@ function onPointerUp(e: PointerEvent): void {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 5;
+  z-index: 6;
   pointer-events: none;
   overflow: visible;
 }
@@ -803,7 +851,13 @@ function onPointerUp(e: PointerEvent): void {
   background: var(--surface-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  pointer-events: none;
+  cursor: pointer;
   user-select: none;
+  transition: background 0.15s;
+}
+
+.canvas-viewport__zoom-badge:hover {
+  background: var(--surface-panel);
+  color: var(--text-primary);
 }
 </style>

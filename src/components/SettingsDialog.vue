@@ -14,12 +14,14 @@ const {
   trimThreshold,
   tabNamePattern,
   hotkey,
+  zoomSensitivity,
   autostart,
   setTheme,
   setAutoCopyOnClose,
   setAutoTrimOnPaste,
   setTrimThreshold,
   setTabNamePattern,
+  setZoomSensitivity,
   setAutostart,
 } = useSettings()
 
@@ -36,6 +38,11 @@ function handleTrimThreshold(event: Event): void {
 function handleTabNamePattern(event: Event): void {
   const target = event.target as HTMLInputElement
   setTabNamePattern(target.value)
+}
+
+function handleZoomSensitivity(event: Event): void {
+  const target = event.target as HTMLInputElement
+  setZoomSensitivity(Number(target.value))
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -88,6 +95,20 @@ onUnmounted(() => {
               <option value="dark">Dark</option>
               <option value="system">System</option>
             </select>
+          </label>
+
+          <label class="settings-field">
+            <span class="settings-field__label"
+              >Zoom sensitivity ({{ zoomSensitivity }})</span
+            >
+            <input
+              type="range"
+              class="settings-field__slider"
+              min="1"
+              max="5"
+              :value="zoomSensitivity"
+              @input="handleZoomSensitivity"
+            />
           </label>
         </section>
 
