@@ -21,8 +21,8 @@ import type { RectAnnotation } from "../../src/types/annotations"
 import type { FreehandStroke } from "../../src/types/freehand"
 import type { RedactionRegion } from "../../src/types/redaction"
 import {
-  PIXELATE_DEFAULT,
-  BLUR_DEFAULT,
+  PIXELATE_BLOCK_SIZES,
+  BLUR_RADII,
   SOLID_DEFAULT_COLOR,
 } from "../../src/types/redaction"
 
@@ -72,8 +72,8 @@ function makeRegion(
     height: 50,
     style: "solid",
     solidColor: SOLID_DEFAULT_COLOR,
-    blockSize: PIXELATE_DEFAULT,
-    blurRadius: BLUR_DEFAULT,
+    blockSize: PIXELATE_BLOCK_SIZES[2],
+    blurRadius: BLUR_RADII[2],
     ...overrides,
   }
 }

@@ -112,6 +112,7 @@ const TEXT_DEFAULTS: TextToolSettings = {
 
 const REDACT_DEFAULTS: RedactToolSettings = {
   style: "solid",
+  strength: 2,
 }
 
 // Module-level singleton for active tool
@@ -232,6 +233,7 @@ function getRedactSettings(): RedactToolSettings {
 /** Update redact settings (partial patch) */
 function updateRedactSettings(patch: Partial<RedactToolSettings>): void {
   if (patch.style !== undefined) redactSettings.style = patch.style
+  if (patch.strength !== undefined) redactSettings.strength = patch.strength
   settingsVersion.value++
 }
 

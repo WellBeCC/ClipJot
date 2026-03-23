@@ -37,6 +37,12 @@ AI-friendly output from Bun's test runner:
 export AGENT=1
 ```
 
+After any code changes, when all tests pass, commit with a message that includes the relevant issue number and a brief description of the change. For example:
+
+```bash
+git commit -m "Fixes#123: Corrected image cropping logic to handle edge cases"
+```
+
 ## Code formatting
 
 We have a Prettier config (`prettierrc.json`) at the project root.

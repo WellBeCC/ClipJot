@@ -3,15 +3,11 @@ import { readFileSync } from "fs"
 import { resolve } from "path"
 import type { RedactionRegion } from "../../src/types/redaction"
 import {
-  BLUR_MIN,
-  BLUR_MAX,
-  PIXELATE_MIN,
-  PIXELATE_MAX,
-  PIXELATE_DEFAULT,
-  BLUR_DEFAULT,
+  PIXELATE_BLOCK_SIZES,
+  BLUR_RADII,
   SOLID_DEFAULT_COLOR,
-  clampBlurRadius,
-  clampBlockSize,
+  blockSizeForStrength,
+  blurRadiusForStrength,
 } from "../../src/types/redaction"
 import {
   createRedactionState,
@@ -34,8 +30,8 @@ function makeRegion(
     height: 50,
     style: "solid",
     solidColor: SOLID_DEFAULT_COLOR,
-    blockSize: PIXELATE_DEFAULT,
-    blurRadius: BLUR_DEFAULT,
+    blockSize: PIXELATE_BLOCK_SIZES[2],
+    blurRadius: BLUR_RADII[2],
     ...overrides,
   }
 }
@@ -68,12 +64,12 @@ describe("Redaction security: region creation with all 3 styles", () => {
   })
 
   test("blur region creates correctly", () => {
-    const region = makeRegion({ style: "blur", blurRadius: 45 })
+    const region = makeRegion({ style: "blur", blurRadius: blurRadiusForStrength(2) })
     store.addRegion(region)
 
     expect(store.regions.value).toHaveLength(1)
     expect(store.regions.value[0].style).toBe("blur")
-    expect(store.regions.value[0].blurRadius).toBe(45)
+    expect(store.regions.value[0].blurRadius).toBe(8)
   })
 
   test("all 3 styles can coexist", () => {
@@ -87,57 +83,37 @@ describe("Redaction security: region creation with all 3 styles", () => {
   })
 })
 
-describe("Redaction security: blur minimum enforced at 40px", () => {
-  test("clampBlurRadius floors at BLUR_MIN (40)", () => {
-    expect(clampBlurRadius(0)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(1)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(10)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(20)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(39)).toBe(BLUR_MIN)
+describe("Redaction security: lowest strength preset provides adequate redaction", () => {
+  test("lowest blur strength (1) provides radius of 4px", () => {
+    expect(blurRadiusForStrength(1)).toBe(4)
+    expect(BLUR_RADII[1]).toBe(4)
   })
 
-  test("clampBlurRadius caps at BLUR_MAX (50)", () => {
-    expect(clampBlurRadius(51)).toBe(BLUR_MAX)
-    expect(clampBlurRadius(100)).toBe(BLUR_MAX)
-    expect(clampBlurRadius(999)).toBe(BLUR_MAX)
+  test("lowest pixelation strength (1) provides block size of 8px", () => {
+    expect(blockSizeForStrength(1)).toBe(8)
+    expect(PIXELATE_BLOCK_SIZES[1]).toBe(8)
   })
 
-  test("clampBlurRadius preserves valid values", () => {
-    expect(clampBlurRadius(40)).toBe(40)
-    expect(clampBlurRadius(45)).toBe(45)
-    expect(clampBlurRadius(50)).toBe(50)
+  test("all blur strength levels return positive values", () => {
+    for (const s of [1, 2, 3] as const) {
+      expect(blurRadiusForStrength(s)).toBeGreaterThan(0)
+    }
   })
 
-  test("negative blur radius clamped to minimum", () => {
-    expect(clampBlurRadius(-10)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(-1)).toBe(BLUR_MIN)
-  })
-})
-
-describe("Redaction security: pixelation minimum enforced at 12px", () => {
-  test("clampBlockSize floors at PIXELATE_MIN (12)", () => {
-    expect(clampBlockSize(0)).toBe(PIXELATE_MIN)
-    expect(clampBlockSize(1)).toBe(PIXELATE_MIN)
-    expect(clampBlockSize(5)).toBe(PIXELATE_MIN)
-    expect(clampBlockSize(11)).toBe(PIXELATE_MIN)
+  test("all pixelation strength levels return positive values", () => {
+    for (const s of [1, 2, 3] as const) {
+      expect(blockSizeForStrength(s)).toBeGreaterThan(0)
+    }
   })
 
-  test("clampBlockSize caps at PIXELATE_MAX (32)", () => {
-    expect(clampBlockSize(33)).toBe(PIXELATE_MAX)
-    expect(clampBlockSize(100)).toBe(PIXELATE_MAX)
-    expect(clampBlockSize(999)).toBe(PIXELATE_MAX)
+  test("higher strength produces larger blur radius", () => {
+    expect(blurRadiusForStrength(2)).toBeGreaterThan(blurRadiusForStrength(1))
+    expect(blurRadiusForStrength(3)).toBeGreaterThan(blurRadiusForStrength(2))
   })
 
-  test("clampBlockSize preserves valid values", () => {
-    expect(clampBlockSize(12)).toBe(12)
-    expect(clampBlockSize(16)).toBe(16)
-    expect(clampBlockSize(24)).toBe(24)
-    expect(clampBlockSize(32)).toBe(32)
-  })
-
-  test("negative block size clamped to minimum", () => {
-    expect(clampBlockSize(-5)).toBe(PIXELATE_MIN)
-    expect(clampBlockSize(-1)).toBe(PIXELATE_MIN)
+  test("higher strength produces larger block size", () => {
+    expect(blockSizeForStrength(2)).toBeGreaterThan(blockSizeForStrength(1))
+    expect(blockSizeForStrength(3)).toBeGreaterThan(blockSizeForStrength(2))
   })
 })
 
@@ -188,7 +164,7 @@ describe("Redaction security: commands are all undoable", () => {
   })
 
   test("RedactionCreateCommand: create and undo via stack", () => {
-    const region = makeRegion({ style: "blur", blurRadius: 45 })
+    const region = makeRegion({ style: "blur", blurRadius: blurRadiusForStrength(2) })
 
     undoRedo.push(
       createRedactionCreateCommand(

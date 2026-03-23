@@ -3,15 +3,11 @@ import { readFileSync, existsSync } from "fs"
 import { resolve } from "path"
 import type { RedactionRegion } from "../src/types/redaction"
 import {
-  BLUR_MIN,
-  BLUR_DEFAULT,
-  BLUR_MAX,
-  PIXELATE_MIN,
-  PIXELATE_DEFAULT,
-  PIXELATE_MAX,
+  PIXELATE_BLOCK_SIZES,
+  BLUR_RADII,
   SOLID_DEFAULT_COLOR,
-  clampBlurRadius,
-  clampBlockSize,
+  blockSizeForStrength,
+  blurRadiusForStrength,
 } from "../src/types/redaction"
 import {
   createRedactionState,
@@ -33,8 +29,8 @@ function makeRegion(
     height: 50,
     style: "solid",
     solidColor: SOLID_DEFAULT_COLOR,
-    blockSize: PIXELATE_DEFAULT,
-    blurRadius: BLUR_DEFAULT,
+    blockSize: PIXELATE_BLOCK_SIZES[2],
+    blurRadius: BLUR_RADII[2],
     ...overrides,
   }
 }
@@ -50,7 +46,7 @@ describe("Redaction types", () => {
     expect(region.style).toBe("solid")
     expect(region.solidColor).toBe("#000000")
     expect(region.blockSize).toBe(16)
-    expect(region.blurRadius).toBe(40)
+    expect(region.blurRadius).toBe(8)
   })
 
   test("all three redaction styles are valid", () => {
@@ -74,62 +70,41 @@ describe("Redaction types", () => {
   })
 })
 
-describe("Security minimums (Appendix C)", () => {
-  test("blur minimum is 40px", () => {
-    expect(BLUR_MIN).toBe(40)
+describe("Strength presets", () => {
+  test("PIXELATE_BLOCK_SIZES has 3 levels", () => {
+    expect(PIXELATE_BLOCK_SIZES[1]).toBe(8)
+    expect(PIXELATE_BLOCK_SIZES[2]).toBe(16)
+    expect(PIXELATE_BLOCK_SIZES[3]).toBe(32)
   })
 
-  test("blur default is 40px", () => {
-    expect(BLUR_DEFAULT).toBe(40)
+  test("BLUR_RADII has 3 levels", () => {
+    expect(BLUR_RADII[1]).toBe(4)
+    expect(BLUR_RADII[2]).toBe(8)
+    expect(BLUR_RADII[3]).toBe(16)
   })
 
-  test("blur maximum is 50px", () => {
-    expect(BLUR_MAX).toBe(50)
+  test("blockSizeForStrength returns correct values", () => {
+    expect(blockSizeForStrength(1)).toBe(8)
+    expect(blockSizeForStrength(2)).toBe(16)
+    expect(blockSizeForStrength(3)).toBe(32)
   })
 
-  test("pixelation minimum is 12px", () => {
-    expect(PIXELATE_MIN).toBe(12)
+  test("blurRadiusForStrength returns correct values", () => {
+    expect(blurRadiusForStrength(1)).toBe(4)
+    expect(blurRadiusForStrength(2)).toBe(8)
+    expect(blurRadiusForStrength(3)).toBe(16)
   })
 
-  test("pixelation default is 16px", () => {
-    expect(PIXELATE_DEFAULT).toBe(16)
+  test("blockSizeForStrength matches PIXELATE_BLOCK_SIZES lookup", () => {
+    for (const s of [1, 2, 3] as const) {
+      expect(blockSizeForStrength(s)).toBe(PIXELATE_BLOCK_SIZES[s])
+    }
   })
 
-  test("pixelation maximum is 32px", () => {
-    expect(PIXELATE_MAX).toBe(32)
-  })
-
-  test("clampBlurRadius enforces minimum", () => {
-    expect(clampBlurRadius(10)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(20)).toBe(BLUR_MIN)
-    expect(clampBlurRadius(39)).toBe(BLUR_MIN)
-  })
-
-  test("clampBlurRadius enforces maximum", () => {
-    expect(clampBlurRadius(60)).toBe(BLUR_MAX)
-    expect(clampBlurRadius(100)).toBe(BLUR_MAX)
-  })
-
-  test("clampBlurRadius preserves values in range", () => {
-    expect(clampBlurRadius(40)).toBe(40)
-    expect(clampBlurRadius(45)).toBe(45)
-    expect(clampBlurRadius(50)).toBe(50)
-  })
-
-  test("clampBlockSize enforces minimum", () => {
-    expect(clampBlockSize(5)).toBe(PIXELATE_MIN)
-    expect(clampBlockSize(11)).toBe(PIXELATE_MIN)
-  })
-
-  test("clampBlockSize enforces maximum", () => {
-    expect(clampBlockSize(40)).toBe(PIXELATE_MAX)
-    expect(clampBlockSize(100)).toBe(PIXELATE_MAX)
-  })
-
-  test("clampBlockSize preserves values in range", () => {
-    expect(clampBlockSize(12)).toBe(12)
-    expect(clampBlockSize(20)).toBe(20)
-    expect(clampBlockSize(32)).toBe(32)
+  test("blurRadiusForStrength matches BLUR_RADII lookup", () => {
+    for (const s of [1, 2, 3] as const) {
+      expect(blurRadiusForStrength(s)).toBe(BLUR_RADII[s])
+    }
   })
 })
 

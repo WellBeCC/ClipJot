@@ -26,8 +26,8 @@ import type {
 import type { RedactionRegion } from "../types/redaction"
 import {
   SOLID_DEFAULT_COLOR,
-  BLUR_DEFAULT,
-  PIXELATE_DEFAULT,
+  blockSizeForStrength,
+  blurRadiusForStrength,
 } from "../types/redaction"
 import EmptyClipboard from "./EmptyClipboard.vue"
 import RedactionCanvas from "./RedactionCanvas.vue"
@@ -467,8 +467,8 @@ function onOverlayPointerUp(e: PointerEvent): void {
       height: Math.round(p.height),
       style: settings.style,
       solidColor: SOLID_DEFAULT_COLOR,
-      blockSize: PIXELATE_DEFAULT,
-      blurRadius: BLUR_DEFAULT,
+      blockSize: blockSizeForStrength(settings.strength),
+      blurRadius: blurRadiusForStrength(settings.strength),
     }
 
     const cmd = createRedactionCreateCommand(

@@ -2,7 +2,7 @@
 import { computed } from "vue"
 import { useToolStore } from "../composables/useToolStore"
 import { isFreehandTool, isShapeTool, isLineTool } from "../types/tools"
-import type { RedactStyle } from "../types/tools"
+import type { RedactStyle, RedactStrength } from "../types/tools"
 import ColorPicker from "./ColorPicker.vue"
 import StrokeWidthSelector from "./StrokeWidthSelector.vue"
 import OpacitySlider from "./OpacitySlider.vue"
@@ -10,6 +10,7 @@ import FillToggle from "./FillToggle.vue"
 import RedactStylePicker from "./RedactStylePicker.vue"
 import FontSizeSelector from "./FontSizeSelector.vue"
 import CalloutSizeSelector from "./CalloutSizeSelector.vue"
+import RedactStrengthSelector from "./RedactStrengthSelector.vue"
 
 const {
   activeTool,
@@ -87,6 +88,11 @@ const showCalloutColor = computed(() => activeTool.value === "callout")
 const showCalloutSize = computed(() => activeTool.value === "callout")
 const showFontSize = computed(() => activeTool.value === "text")
 const showRedactStyle = computed(() => activeTool.value === "redact")
+const showRedactStrength = computed(() => {
+  if (activeTool.value !== "redact") return false
+  void settingsVersion.value
+  return getRedactSettings().style !== "solid"
+})
 
 // ── Reactive getters (touch settingsVersion for reactivity) ──
 
@@ -156,6 +162,11 @@ const currentRedactStyle = computed(() => {
   return getRedactSettings().style
 })
 
+const currentRedactStrength = computed(() => {
+  void settingsVersion.value
+  return getRedactSettings().strength
+})
+
 // ── Update handlers ──
 
 function onColorChange(color: string): void {
@@ -206,6 +217,10 @@ function onFontSizeChange(fontSize: number): void {
 
 function onRedactStyleChange(style: RedactStyle): void {
   updateRedactSettings({ style })
+}
+
+function onRedactStrengthChange(strength: RedactStrength): void {
+  updateRedactSettings({ strength })
 }
 </script>
 
@@ -274,6 +289,12 @@ function onRedactStyleChange(style: RedactStyle): void {
       <div v-if="showRedactStyle" class="sub-toolbar__section" data-section="redactStyle">
         <span class="sub-toolbar__label">Style</span>
         <RedactStylePicker :model-value="currentRedactStyle" @update:model-value="onRedactStyleChange" />
+      </div>
+
+      <!-- Redact strength (pixelate/blur only) -->
+      <div v-if="showRedactStrength" class="sub-toolbar__section" data-section="redactStrength">
+        <span class="sub-toolbar__label">Strength</span>
+        <RedactStrengthSelector :model-value="currentRedactStrength" @update:model-value="onRedactStrengthChange" />
       </div>
     </template>
   </div>

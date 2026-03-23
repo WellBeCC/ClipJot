@@ -68,9 +68,13 @@ export interface TextToolSettings {
   color: string
 }
 
+/** Redaction effect strength: 1 = light, 2 = medium, 3 = strong */
+export type RedactStrength = 1 | 2 | 3
+
 /** Settings for redaction tool */
 export interface RedactToolSettings {
   style: RedactStyle
+  strength: RedactStrength
 }
 
 /** Map of tool ID to its settings type */

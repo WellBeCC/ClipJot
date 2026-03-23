@@ -1,4 +1,4 @@
-import type { RedactStyle } from "./tools"
+import type { RedactStyle, RedactStrength } from "./tools"
 
 /**
  * A single redaction region applied over the base image.
@@ -19,37 +19,37 @@ export interface RedactionRegion {
   style: RedactStyle
   /** Fill color for solid redaction (default: black) */
   solidColor: string
-  /** Pixel block size for pixelation (clamped to PIXELATE_MIN..PIXELATE_MAX) */
+  /** Pixel block size for pixelation */
   blockSize: number
-  /** Gaussian blur radius for blur redaction (clamped to BLUR_MIN..BLUR_MAX) */
+  /** Box blur radius (per-pass radius for 3-pass box blur) */
   blurRadius: number
 }
-
-// ── Security minimums (Appendix C) ──
-
-/** Minimum blur radius to prevent reversibility */
-export const BLUR_MIN = 40
-/** Default blur radius */
-export const BLUR_DEFAULT = 40
-/** Maximum blur radius */
-export const BLUR_MAX = 50
-
-/** Minimum pixelation block size to prevent reversibility */
-export const PIXELATE_MIN = 12
-/** Default pixelation block size */
-export const PIXELATE_DEFAULT = 16
-/** Maximum pixelation block size */
-export const PIXELATE_MAX = 32
 
 /** Default solid redaction color */
 export const SOLID_DEFAULT_COLOR = "#000000"
 
-/** Clamp a blur radius to the allowed range */
-export function clampBlurRadius(radius: number): number {
-  return Math.max(BLUR_MIN, Math.min(BLUR_MAX, radius))
+// ── Strength presets ──
+
+/** Pixelation block sizes per strength level */
+export const PIXELATE_BLOCK_SIZES: Record<RedactStrength, number> = {
+  1: 8,
+  2: 16,
+  3: 32,
 }
 
-/** Clamp a pixelation block size to the allowed range */
-export function clampBlockSize(size: number): number {
-  return Math.max(PIXELATE_MIN, Math.min(PIXELATE_MAX, size))
+/** Blur radii per strength level (3-pass box blur) */
+export const BLUR_RADII: Record<RedactStrength, number> = {
+  1: 4,
+  2: 8,
+  3: 16,
+}
+
+/** Get pixelation block size for a given strength */
+export function blockSizeForStrength(strength: RedactStrength): number {
+  return PIXELATE_BLOCK_SIZES[strength]
+}
+
+/** Get blur radius for a given strength */
+export function blurRadiusForStrength(strength: RedactStrength): number {
+  return BLUR_RADII[strength]
 }
