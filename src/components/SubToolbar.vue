@@ -1,8 +1,19 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref, onMounted, onUnmounted } from "vue"
 import { useToolStore } from "../composables/useToolStore"
+import { useSelection } from "../composables/useSelection"
+import { useTabStore } from "../composables/useTabStore"
+import { useAnnotationStore } from "../composables/useAnnotationStore"
+import { createSvgMutateCommand } from "../commands/SvgMutateCommand"
 import { isFreehandTool, isShapeTool, isLineTool } from "../types/tools"
-import type { RedactStyle, RedactStrength } from "../types/tools"
+import type { RedactStyle, RedactStrength, AspectRatioPreset } from "../types/tools"
+import type {
+  Annotation,
+  TextAnnotation,
+  RectAnnotation,
+  EllipseAnnotation,
+  CalloutAnnotation,
+} from "../types/annotations"
 import ColorPicker from "./ColorPicker.vue"
 import StrokeWidthSelector from "./StrokeWidthSelector.vue"
 import OpacitySlider from "./OpacitySlider.vue"
@@ -11,6 +22,8 @@ import RedactStylePicker from "./RedactStylePicker.vue"
 import FontSizeSelector from "./FontSizeSelector.vue"
 import CalloutSizeSelector from "./CalloutSizeSelector.vue"
 import RedactStrengthSelector from "./RedactStrengthSelector.vue"
+import AspectRatioSelector from "./AspectRatioSelector.vue"
+import { Check, X } from "lucide-vue-next"
 
 const {
   activeTool,
@@ -27,16 +40,45 @@ const {
   updateTextSettings,
   getRedactSettings,
   updateRedactSettings,
+  getCropSettings,
+  updateCropSettings,
 } = useToolStore()
+
+const { selectedIds } = useSelection()
+const { activeTab } = useTabStore()
+
+const annotationStore = computed(() =>
+  activeTab.value ? useAnnotationStore(activeTab.value.annotationState) : null,
+)
+
+/** The single selected annotation when the select tool is active */
+const selectedAnnotation = computed<Annotation | null>(() => {
+  if (activeTool.value !== "select" || selectedIds.value.size !== 1) return null
+  const id = [...selectedIds.value][0]
+  return annotationStore.value?.getAnnotation(id) ?? null
+})
+
+/** Shorthand type checks on the selected annotation */
+const selType = computed(() => selectedAnnotation.value?.type ?? null)
+const selIsShape = computed(() => selType.value === "rect" || selType.value === "ellipse")
+const selIsLine = computed(() => selType.value === "arrow" || selType.value === "line")
+const selIsCallout = computed(() => selType.value === "callout")
+const selIsText = computed(() => selType.value === "text")
 
 /** Whether the sub-toolbar should be visible */
 const isVisible = computed(() => {
   const tool = activeTool.value
-  return tool !== "select" && tool !== "crop"
+  if (tool === "crop") return true
+  // Show when any annotation is selected (select tool)
+  if (tool === "select") return selectedAnnotation.value !== null
+  return true
 })
 
 /** Which parameter sections to show for each tool */
 const showColor = computed(() => {
+  // Callout uses its own color section (showCalloutColor), not the generic one
+  if (selIsCallout.value) return false
+  if (selectedAnnotation.value) return true
   const tool = activeTool.value
   return (
     tool === "pen" ||
@@ -51,6 +93,7 @@ const showColor = computed(() => {
 })
 
 const showWidth = computed(() => {
+  if (selIsShape.value || selIsLine.value) return true
   const tool = activeTool.value
   return (
     tool === "pen" ||
@@ -69,24 +112,35 @@ const showOpacity = computed(() => {
 })
 
 const showFill = computed(() => {
+  if (selIsShape.value) return true
   return isShapeTool(activeTool.value)
 })
 
 const showFillColor = computed(() => {
+  if (selIsShape.value) {
+    const a = selectedAnnotation.value as RectAnnotation | EllipseAnnotation
+    return a.fill
+  }
   if (!isShapeTool(activeTool.value)) return false
   void settingsVersion.value
   return getShapeSettings(activeTool.value as "rect" | "ellipse").fill
 })
 
 const showFillOpacity = computed(() => {
+  if (selIsShape.value) {
+    const a = selectedAnnotation.value as RectAnnotation | EllipseAnnotation
+    return a.fill
+  }
   if (!isShapeTool(activeTool.value)) return false
   void settingsVersion.value
   return getShapeSettings(activeTool.value as "rect" | "ellipse").fill
 })
 
-const showCalloutColor = computed(() => activeTool.value === "callout")
-const showCalloutSize = computed(() => activeTool.value === "callout")
-const showFontSize = computed(() => activeTool.value === "text")
+const showCalloutColor = computed(() => selIsCallout.value || activeTool.value === "callout")
+const showCalloutSize = computed(() => selIsCallout.value || activeTool.value === "callout")
+const showFontSize = computed(
+  () => activeTool.value === "text" || selIsText.value,
+)
 const showRedactStyle = computed(() => activeTool.value === "redact")
 const showRedactStrength = computed(() => {
   if (activeTool.value !== "redact") return false
@@ -98,6 +152,12 @@ const showRedactStrength = computed(() => {
 
 const currentColor = computed(() => {
   void settingsVersion.value
+  const sel = selectedAnnotation.value
+  if (sel) {
+    // Callout uses fillColor as its primary color
+    if (sel.type === "callout") return (sel as CalloutAnnotation).fillColor
+    return sel.strokeColor
+  }
   const tool = activeTool.value
   if (isFreehandTool(tool)) return getToolSettings(tool).color
   if (isShapeTool(tool)) return getShapeSettings(tool).color
@@ -108,6 +168,8 @@ const currentColor = computed(() => {
 
 const currentWidth = computed(() => {
   void settingsVersion.value
+  const sel = selectedAnnotation.value
+  if (sel && (selIsShape.value || selIsLine.value)) return sel.strokeWidth
   const tool = activeTool.value
   if (isFreehandTool(tool)) return getToolSettings(tool).width
   if (isShapeTool(tool)) return getShapeSettings(tool).width
@@ -123,6 +185,7 @@ const currentOpacity = computed(() => {
 
 const currentFill = computed(() => {
   void settingsVersion.value
+  if (selIsShape.value) return (selectedAnnotation.value as RectAnnotation | EllipseAnnotation).fill
   const tool = activeTool.value
   if (isShapeTool(tool)) return getShapeSettings(tool).fill
   return false
@@ -130,6 +193,7 @@ const currentFill = computed(() => {
 
 const currentFillColor = computed(() => {
   void settingsVersion.value
+  if (selIsShape.value) return (selectedAnnotation.value as RectAnnotation | EllipseAnnotation).fillColor
   const tool = activeTool.value
   if (isShapeTool(tool)) return getShapeSettings(tool).fillColor
   return "#D14D41"
@@ -137,6 +201,7 @@ const currentFillColor = computed(() => {
 
 const currentFillOpacity = computed(() => {
   void settingsVersion.value
+  if (selIsShape.value) return (selectedAnnotation.value as RectAnnotation | EllipseAnnotation).fillOpacity
   const tool = activeTool.value
   if (isShapeTool(tool)) return getShapeSettings(tool).fillOpacity
   return 0.3
@@ -144,16 +209,19 @@ const currentFillOpacity = computed(() => {
 
 const currentCalloutColor = computed(() => {
   void settingsVersion.value
+  if (selIsCallout.value) return (selectedAnnotation.value as CalloutAnnotation).fillColor
   return getCalloutSettings().fillColor
 })
 
 const currentCalloutSize = computed(() => {
   void settingsVersion.value
+  if (selIsCallout.value) return (selectedAnnotation.value as CalloutAnnotation).radius
   return getCalloutSettings().radius
 })
 
 const currentFontSize = computed(() => {
   void settingsVersion.value
+  if (selIsText.value) return (selectedAnnotation.value as TextAnnotation).fontSize
   return getTextSettings().fontSize
 })
 
@@ -169,7 +237,34 @@ const currentRedactStrength = computed(() => {
 
 // ── Update handlers ──
 
+/** Commit a property change on the selected annotation with undo support */
+function commitAnnotationChange(
+  field: string,
+  before: unknown,
+  after: unknown,
+): void {
+  const sel = selectedAnnotation.value
+  if (!sel || !annotationStore.value || !activeTab.value) return
+  const cmd = createSvgMutateCommand(
+    sel.id,
+    { [field]: before } as Partial<Annotation>,
+    { [field]: after } as Partial<Annotation>,
+    annotationStore.value.updateAnnotation,
+  )
+  activeTab.value.undoRedo.push(cmd)
+}
+
 function onColorChange(color: string): void {
+  const sel = selectedAnnotation.value
+  if (sel) {
+    // Callout uses fillColor as primary color
+    if (sel.type === "callout") {
+      commitAnnotationChange("fillColor", (sel as CalloutAnnotation).fillColor, color)
+    } else {
+      commitAnnotationChange("strokeColor", sel.strokeColor, color)
+    }
+    return
+  }
   const tool = activeTool.value
   if (isFreehandTool(tool)) updateToolSettings(tool, { color })
   else if (isShapeTool(tool)) updateShapeSettings(tool, { color })
@@ -178,6 +273,11 @@ function onColorChange(color: string): void {
 }
 
 function onWidthChange(width: number): void {
+  const sel = selectedAnnotation.value
+  if (sel && (selIsShape.value || selIsLine.value)) {
+    commitAnnotationChange("strokeWidth", sel.strokeWidth, width)
+    return
+  }
   const tool = activeTool.value
   if (isFreehandTool(tool)) updateToolSettings(tool, { width })
   else if (isShapeTool(tool)) updateShapeSettings(tool, { width })
@@ -189,29 +289,53 @@ function onOpacityChange(opacity: number): void {
 }
 
 function onFillChange(fill: boolean): void {
+  if (selIsShape.value) {
+    commitAnnotationChange("fill", (selectedAnnotation.value as RectAnnotation | EllipseAnnotation).fill, fill)
+    return
+  }
   const tool = activeTool.value
   if (isShapeTool(tool)) updateShapeSettings(tool, { fill })
 }
 
 function onFillColorChange(fillColor: string): void {
+  if (selIsShape.value) {
+    commitAnnotationChange("fillColor", (selectedAnnotation.value as RectAnnotation | EllipseAnnotation).fillColor, fillColor)
+    return
+  }
   const tool = activeTool.value
   if (isShapeTool(tool)) updateShapeSettings(tool, { fillColor })
 }
 
 function onFillOpacityChange(fillOpacity: number): void {
+  if (selIsShape.value) {
+    commitAnnotationChange("fillOpacity", (selectedAnnotation.value as RectAnnotation | EllipseAnnotation).fillOpacity, fillOpacity)
+    return
+  }
   const tool = activeTool.value
   if (isShapeTool(tool)) updateShapeSettings(tool, { fillOpacity })
 }
 
 function onCalloutColorChange(fillColor: string): void {
+  if (selIsCallout.value) {
+    commitAnnotationChange("fillColor", (selectedAnnotation.value as CalloutAnnotation).fillColor, fillColor)
+    return
+  }
   updateCalloutSettings({ fillColor })
 }
 
 function onCalloutSizeChange(radius: number): void {
+  if (selIsCallout.value) {
+    commitAnnotationChange("radius", (selectedAnnotation.value as CalloutAnnotation).radius, radius)
+    return
+  }
   updateCalloutSettings({ radius })
 }
 
 function onFontSizeChange(fontSize: number): void {
+  if (selIsText.value) {
+    commitAnnotationChange("fontSize", (selectedAnnotation.value as TextAnnotation).fontSize, fontSize)
+    return
+  }
   updateTextSettings({ fontSize })
 }
 
@@ -222,6 +346,39 @@ function onRedactStyleChange(style: RedactStyle): void {
 function onRedactStrengthChange(strength: RedactStrength): void {
   updateRedactSettings({ strength })
 }
+
+const showCrop = computed(() => activeTool.value === "crop")
+
+const currentAspectRatio = computed(() => {
+  void settingsVersion.value
+  return getCropSettings().aspectRatio
+})
+
+function onAspectRatioChange(aspectRatio: AspectRatioPreset): void {
+  updateCropSettings({ aspectRatio })
+}
+
+const cropPending = ref(false)
+
+function onCropPendingChange(e: Event): void {
+  cropPending.value = (e as CustomEvent).detail as boolean
+}
+
+function onCropApply(): void {
+  window.dispatchEvent(new CustomEvent("crop-apply"))
+}
+
+function onCropCancel(): void {
+  window.dispatchEvent(new CustomEvent("crop-cancel"))
+}
+
+onMounted(() => {
+  window.addEventListener("crop-pending-change", onCropPendingChange)
+})
+
+onUnmounted(() => {
+  window.removeEventListener("crop-pending-change", onCropPendingChange)
+})
 </script>
 
 <template>
@@ -296,6 +453,37 @@ function onRedactStrengthChange(strength: RedactStrength): void {
         <span class="sub-toolbar__label">Strength</span>
         <RedactStrengthSelector :model-value="currentRedactStrength" @update:model-value="onRedactStrengthChange" />
       </div>
+
+      <!-- Crop aspect ratio -->
+      <div v-if="showCrop" class="sub-toolbar__section" data-section="cropRatio">
+        <span class="sub-toolbar__label">Ratio</span>
+        <AspectRatioSelector
+          :model-value="currentAspectRatio"
+          @update:model-value="onAspectRatioChange"
+        />
+      </div>
+
+      <!-- Crop apply/cancel -->
+      <div v-if="showCrop && cropPending" class="sub-toolbar__section" data-section="cropActions">
+        <button
+          class="sub-toolbar__action-btn sub-toolbar__action-btn--apply"
+          title="Apply crop (Enter)"
+          type="button"
+          @click="onCropApply"
+        >
+          <Check :size="14" />
+          <span>Apply</span>
+        </button>
+        <button
+          class="sub-toolbar__action-btn sub-toolbar__action-btn--cancel"
+          title="Cancel crop (Esc)"
+          type="button"
+          @click="onCropCancel"
+        >
+          <X :size="14" />
+          <span>Cancel</span>
+        </button>
+      </div>
     </template>
   </div>
 </template>
@@ -341,5 +529,38 @@ function onRedactStrengthChange(strength: RedactStrength): void {
   letter-spacing: 0.04em;
   user-select: none;
   white-space: nowrap;
+}
+
+.sub-toolbar__action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+}
+
+.sub-toolbar__action-btn:hover {
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.sub-toolbar__action-btn--apply {
+  border-color: var(--interactive-default);
+  color: var(--interactive-default);
+}
+
+.sub-toolbar__action-btn--apply:hover {
+  background: var(--interactive-default);
+  color: var(--text-inverse);
+}
+
+.sub-toolbar__action-btn--cancel:hover {
+  border-color: var(--border-default);
 }
 </style>
