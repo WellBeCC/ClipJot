@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { readFileSync, existsSync } from "fs"
+import { existsSync, readFileSync } from "fs"
 import { resolve } from "path"
 import { ref } from "vue"
 import type { CropBounds } from "../src/types/crop"
@@ -9,7 +9,6 @@ import { createCropState } from "../src/composables/useCrop"
 const srcDir = resolve(__dirname, "../src")
 const typesDir = resolve(srcDir, "types")
 const composablesDir = resolve(srcDir, "composables")
-const componentsDir = resolve(srcDir, "components")
 const commandsDir = resolve(srcDir, "commands")
 
 describe("CropBounds Type", () => {
@@ -102,28 +101,36 @@ describe("CropState (useCrop)", () => {
     expect(existsSync(resolve(composablesDir, "useCrop.ts"))).toBe(true)
   })
 
-  test("useCrop.ts exports createCropState and detectTrimBounds", () => {
+  test("useCrop.ts exports createCropState", () => {
     const content = readFileSync(
       resolve(composablesDir, "useCrop.ts"),
       "utf-8",
     )
     expect(content).toContain("export function createCropState")
-    expect(content).toContain("export async function detectTrimBounds")
     expect(content).toContain("export interface CropState")
+  })
+
+  test("useCrop.ts does NOT contain trim references", () => {
+    const content = readFileSync(
+      resolve(composablesDir, "useCrop.ts"),
+      "utf-8",
+    )
+    expect(content).not.toContain("detectTrimBounds")
+    expect(content).not.toContain("trimSuggestion")
+    expect(content).not.toContain("showTrimOverlay")
+    expect(content).not.toContain("detect_trim")
   })
 
   test("createCropState returns correct structure", () => {
     const state = createCropState()
     expect(state).toHaveProperty("cropBounds")
-    expect(state).toHaveProperty("trimSuggestion")
-    expect(state).toHaveProperty("showTrimOverlay")
+    expect(state).not.toHaveProperty("trimSuggestion")
+    expect(state).not.toHaveProperty("showTrimOverlay")
   })
 
-  test("createCropState initializes all refs to null/false", () => {
+  test("createCropState initializes cropBounds to null", () => {
     const state = createCropState()
     expect(state.cropBounds.value).toBeNull()
-    expect(state.trimSuggestion.value).toBeNull()
-    expect(state.showTrimOverlay.value).toBe(false)
   })
 
   test("cropBounds ref is reactive", () => {
@@ -138,125 +145,6 @@ describe("CropState (useCrop)", () => {
     const state2 = createCropState()
     state1.cropBounds.value = { x: 0, y: 0, width: 100, height: 100 }
     expect(state2.cropBounds.value).toBeNull()
-  })
-
-  test("useCrop.ts invokes detect_trim command", () => {
-    const content = readFileSync(
-      resolve(composablesDir, "useCrop.ts"),
-      "utf-8",
-    )
-    expect(content).toContain('invoke<')
-    expect(content).toContain('"detect_trim"')
-    expect(content).toContain("imageBytes")
-    expect(content).toContain("threshold")
-  })
-
-  test("detectTrimBounds returns null for zero-trim result", () => {
-    const content = readFileSync(
-      resolve(composablesDir, "useCrop.ts"),
-      "utf-8",
-    )
-    // Verifies the zero-check logic exists
-    expect(content).toContain("result.top === 0")
-    expect(content).toContain("result.right === 0")
-    expect(content).toContain("result.bottom === 0")
-    expect(content).toContain("result.left === 0")
-    expect(content).toContain("return null")
-  })
-
-  test("detectTrimBounds converts edge insets to CropBounds", () => {
-    const content = readFileSync(
-      resolve(composablesDir, "useCrop.ts"),
-      "utf-8",
-    )
-    // Verifies the conversion formula
-    expect(content).toContain("x: result.left")
-    expect(content).toContain("y: result.top")
-    expect(content).toContain(
-      "width: imageData.width - result.left - result.right",
-    )
-    expect(content).toContain(
-      "height: imageData.height - result.top - result.bottom",
-    )
-  })
-})
-
-describe("TrimOverlay Component", () => {
-  test("TrimOverlay.vue exists", () => {
-    expect(existsSync(resolve(componentsDir, "TrimOverlay.vue"))).toBe(true)
-  })
-
-  test("TrimOverlay.vue has correct props", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    expect(content).toContain("suggestion: CropBounds")
-    expect(content).toContain("imageWidth: number")
-    expect(content).toContain("imageHeight: number")
-  })
-
-  test("TrimOverlay.vue emits accept and dismiss", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    expect(content).toContain("accept: []")
-    expect(content).toContain("dismiss: []")
-  })
-
-  test("TrimOverlay.vue renders four dim regions", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    // Count the dim region divs
-    const dimRegions = content.match(/trim-overlay__dim/g)
-    // 4 template uses + 1 CSS rule = at least 5 occurrences
-    expect(dimRegions).not.toBeNull()
-    expect(dimRegions!.length).toBeGreaterThanOrEqual(5)
-  })
-
-  test("TrimOverlay.vue has Trim accept button", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    expect(content).toContain("trim-overlay__btn")
-    expect(content).toContain(">Trim</button>")
-    expect(content).toContain("emit('accept')")
-  })
-
-  test("TrimOverlay.vue uses semantic tokens", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    expect(content).toContain("var(--overlay-dim)")
-    expect(content).toContain("var(--interactive-default)")
-    expect(content).toContain("var(--interactive-hover)")
-    expect(content).toContain("var(--text-inverse)")
-    expect(content).toContain("var(--shadow-md)")
-    expect(content).not.toMatch(/var\(--flexoki-/)
-  })
-
-  test("TrimOverlay.vue uses pointer-events correctly", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    // Container is pointer-events: none to pass through clicks
-    expect(content).toContain("pointer-events: none")
-    // Button is pointer-events: auto to be clickable
-    expect(content).toContain("pointer-events: auto")
-  })
-
-  test("TrimOverlay.vue imports CropBounds type", () => {
-    const content = readFileSync(
-      resolve(componentsDir, "TrimOverlay.vue"),
-      "utf-8",
-    )
-    expect(content).toContain('import type { CropBounds } from "../types/crop"')
   })
 })
 
@@ -280,28 +168,6 @@ describe("Tab Integration", () => {
     expect(content).toContain("createCropState")
     expect(content).toContain("useCrop")
   })
-
-  test("useTabStore.ts initializes cropState on clipboard tab", () => {
-    const content = readFileSync(
-      resolve(composablesDir, "useTabStore.ts"),
-      "utf-8",
-    )
-    const initStart = content.indexOf("function initClipboardTab")
-    const initEnd = content.indexOf("}", initStart + 1)
-    const initBody = content.slice(initStart, initEnd)
-    expect(initBody).toContain("cropState: createCropState()")
-  })
-
-  test("useTabStore.ts initializes cropState on editing tabs", () => {
-    const content = readFileSync(
-      resolve(composablesDir, "useTabStore.ts"),
-      "utf-8",
-    )
-    const createFnStart = content.indexOf("function createEditingTab")
-    const returnIdx = content.indexOf("return tab", createFnStart)
-    const createFnBody = content.slice(createFnStart, returnIdx)
-    expect(createFnBody).toContain("cropState: createCropState()")
-  })
 })
 
 describe("CropCommand integrates with undo/redo", () => {
@@ -323,5 +189,11 @@ describe("CropCommand integrates with undo/redo", () => {
 
     stack.redo()
     expect(cropRef.value).toEqual(bounds)
+  })
+})
+
+describe("TrimOverlay removed", () => {
+  test("TrimOverlay.vue does not exist", () => {
+    expect(existsSync(resolve(__dirname, "../src/components/TrimOverlay.vue"))).toBe(false)
   })
 })
