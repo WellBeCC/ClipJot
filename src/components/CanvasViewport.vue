@@ -11,6 +11,7 @@ import { useSettings } from "../composables/useSettings"
 import { createSvgMutateCommand } from "../commands/SvgMutateCommand"
 import { createSvgCreateCommand } from "../commands/SvgCreateCommand"
 import { createRedactionCreateCommand } from "../commands/RedactionCreateCommand"
+import { createCropCommand } from "../commands/CropCommand"
 import {
   isFreehandTool,
   isShapeTool,
@@ -23,6 +24,8 @@ import type {
   CalloutAnnotation,
   Annotation,
 } from "../types/annotations"
+import type { CropBounds } from "../types/crop"
+import type { AspectRatioPreset } from "../types/tools"
 import type { RedactionRegion } from "../types/redaction"
 import {
   SOLID_DEFAULT_COLOR,
@@ -71,15 +74,24 @@ function onStartTextEditing(id: string): void {
   }
 }
 
-function onTextCommit(annotationId: string, newHtml: string): void {
+function onTextCommit(
+  annotationId: string,
+  newHtml: string,
+  width: number,
+  height: number,
+): void {
   if (!annotationStore.value || !activeTab.value) return
   const session = commitEdit()
   if (!session) return
 
+  const ann = annotationStore.value.getAnnotation(annotationId)
+  const prevWidth = ann?.type === "text" ? ann.width : 200
+  const prevHeight = ann?.type === "text" ? ann.height : 40
+
   const cmd = createSvgMutateCommand(
     annotationId,
-    { htmlContent: session.previousHtml },
-    { htmlContent: newHtml },
+    { htmlContent: session.previousHtml, width: prevWidth, height: prevHeight },
+    { htmlContent: newHtml, width, height },
     annotationStore.value.updateAnnotation,
   )
   cmd.execute()
@@ -88,6 +100,50 @@ function onTextCommit(annotationId: string, newHtml: string): void {
 
 function onTextCancel(_annotationId: string): void {
   cancelEdit()
+}
+
+function onTextResize(
+  annotationId: string,
+  width: number,
+  height: number,
+): void {
+  if (!annotationStore.value) return
+  annotationStore.value.updateAnnotation(annotationId, { width, height })
+}
+
+function onTextLockWidth(
+  annotationId: string,
+  width: number,
+  newX?: number,
+): void {
+  if (!annotationStore.value) return
+  const patch: Record<string, unknown> = { fixedWidth: true, width }
+  if (newX !== undefined) patch.x = newX
+  annotationStore.value.updateAnnotation(annotationId, patch)
+}
+
+/** Live annotation update during move/resize drag (no undo) */
+function onUpdateAnnotation(annotationId: string, patch: Partial<Annotation>): void {
+  if (!annotationStore.value) return
+  annotationStore.value.updateAnnotation(annotationId, patch)
+}
+
+/** Commit a move/resize with undo support */
+function onCommitAnnotationUpdate(
+  annotationId: string,
+  before: Partial<Annotation>,
+  after: Partial<Annotation>,
+): void {
+  if (!annotationStore.value || !activeTab.value) return
+  const cmd = createSvgMutateCommand(
+    annotationId,
+    before,
+    after,
+    annotationStore.value.updateAnnotation,
+  )
+  // The annotation is already in the "after" state from live updates, no execute needed
+  activeTab.value.undoRedo.push(cmd)
+  promoteIfClipboard()
 }
 
 function onTextDelete(annotationId: string): void {
@@ -100,13 +156,48 @@ function onTextDelete(annotationId: string): void {
 
 const {
   activeTool,
+  settingsVersion,
   getShapeSettings,
   getLineSettings,
   getCalloutSettings,
   getTextSettings,
   getRedactSettings,
+  getCropSettings,
 } = useToolStore()
 const { select, deselect } = useSelection()
+
+const cropAspectRatio = computed<AspectRatioPreset>(() => {
+  void settingsVersion.value
+  return getCropSettings().aspectRatio
+})
+
+const cropPendingBounds = ref<CropBounds | null>(null)
+
+function onCropConfirm(bounds: CropBounds): void {
+  const tab = activeTab.value
+  if (!tab) return
+
+  const cmd = createCropCommand(
+    tab.cropState.cropBounds.value,
+    bounds,
+    tab.cropState.cropBounds,
+  )
+  cmd.execute()
+  tab.undoRedo.push(cmd)
+  promoteIfClipboard()
+  cropPendingBounds.value = null
+}
+
+function onCropCancel(): void {
+  cropPendingBounds.value = null
+}
+
+function onCropPendingUpdate(bounds: CropBounds | null): void {
+  cropPendingBounds.value = bounds
+  window.dispatchEvent(
+    new CustomEvent("crop-pending-change", { detail: bounds !== null }),
+  )
+}
 
 /** Whether the interaction overlay should capture pointer events */
 const overlayPointerEvents = computed(() => {
@@ -259,6 +350,12 @@ function onOverlayPointerDown(e: PointerEvent): void {
 
   // ── Text tool (single click) ──
   if (tool === "text") {
+    // If already editing a text annotation, just finish the current edit
+    // (the blur on the editor will commit/delete as appropriate).
+    if (editingAnnotationId.value) {
+      return
+    }
+
     const store = annotationStore.value
     if (!store) return
     const settings = getTextSettings()
@@ -278,6 +375,7 @@ function onOverlayPointerDown(e: PointerEvent): void {
       fontSize: settings.fontSize,
       fill: false,
       fillColor: "#000000",
+      fixedWidth: false,
     }
     const cmd = createSvgCreateCommand(text, store.addAnnotation, (id) => {
       store.removeAnnotation(id)
@@ -687,6 +785,9 @@ function onPointerUp(e: PointerEvent): void {
           :image-width="activeTab.imageWidth"
           :image-height="activeTab.imageHeight"
           @start-text-editing="onStartTextEditing"
+          @resize-text="onTextLockWidth"
+          @update-annotation="onUpdateAnnotation"
+          @commit-annotation-update="onCommitAnnotationUpdate"
         />
 
         <!-- Interaction overlay for non-freehand tools (z:4 in layer model) -->
@@ -759,9 +860,12 @@ function onPointerUp(e: PointerEvent): void {
         <TextEditor
           v-if="editingTextAnnotation"
           :annotation="editingTextAnnotation"
+          :viewport-scale="viewport.scale.value"
           @commit="onTextCommit"
           @cancel="onTextCancel"
           @delete="onTextDelete"
+          @resize="onTextResize"
+          @lock-width="onTextLockWidth"
         />
 
         <!-- Crop overlay (z:20) for manual crop tool -->
@@ -770,8 +874,10 @@ function onPointerUp(e: PointerEvent): void {
           :image-width="activeTab.imageWidth"
           :image-height="activeTab.imageHeight"
           :screen-to-image="screenToImage"
-          :crop-bounds="activeTab.cropState.cropBounds"
-          :undo-redo-push="(cmd) => activeTab!.undoRedo.push(cmd)"
+          :aspect-ratio="cropAspectRatio"
+          @confirm="onCropConfirm"
+          @cancel="onCropCancel"
+          @update:pending="onCropPendingUpdate"
         />
       </div>
 
