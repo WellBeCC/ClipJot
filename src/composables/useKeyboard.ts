@@ -1,20 +1,24 @@
 import type { ToolId } from "../types/tools"
 
 /**
- * Tool selection via number keys (1-0).
- * Maps keyboard digits to tool IDs in toolbar order.
+ * Tool selection via letter keys.
+ * Uppercase letter in the tool name indicates the shortcut:
+ * Selection, Pen, pencIl, Marker, Eraser, Arrow, Line,
+ * Rectangle, Circle, callOut, Text, reDact
  */
 export const TOOL_KEY_MAP: Record<string, ToolId> = {
-  "1": "select",
-  "2": "pen",
-  "3": "pencil",
-  "4": "marker",
-  "5": "eraser",
-  "6": "arrow",
-  "7": "line",
-  "8": "rect",
-  "9": "ellipse",
-  "0": "crop",
+  s: "select",
+  p: "pen",
+  i: "pencil",
+  m: "marker",
+  e: "eraser",
+  a: "arrow",
+  l: "line",
+  r: "rect",
+  c: "ellipse",
+  o: "callout",
+  t: "text",
+  d: "redact",
 }
 
 /** Minimum interval between Cmd+C executions (milliseconds). */
@@ -97,6 +101,13 @@ export function useKeyboard(): { destroy: () => void } {
     if (mod && e.key === "z" && !e.shiftKey) {
       e.preventDefault()
       handleUndo()
+      return
+    }
+
+    // --- Cmd+D: Duplicate tab ---
+    if (mod && e.key === "d" && !e.shiftKey) {
+      e.preventDefault()
+      handleDuplicateTab()
       return
     }
 
@@ -221,6 +232,13 @@ function handleRedo(): void {
   })
 }
 
+function handleDuplicateTab(): void {
+  import("./useTabStore").then(({ useTabStore }) => {
+    const { duplicateActiveTab } = useTabStore()
+    duplicateActiveTab()
+  })
+}
+
 function handleDeleteSelected(): void {
   Promise.all([
     import("./useSelection"),
@@ -249,12 +267,8 @@ function handleEscape(): void {
       const { activeTool, setTool } = toolMod.useToolStore()
       const tab = activeTab.value
 
-      // If crop tool is active, cancel crop and switch to select
+      // If crop tool is active, switch to select (CropOverlay handles its own Escape)
       if (activeTool.value === "crop") {
-        if (tab) {
-          tab.cropState.cropBounds.value = null
-          tab.cropState.showTrimOverlay.value = false
-        }
         setTool("select")
         return
       }

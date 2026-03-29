@@ -25,8 +25,6 @@ function saveToStorage<T>(key: string, value: T): void {
 // Module-level state (singleton)
 const theme = ref<ThemeSetting>(loadFromStorage<ThemeSetting>("theme", "system"))
 const autoCopyOnClose = ref<boolean>(loadFromStorage<boolean>("autoCopyOnClose", true))
-const autoTrimOnPaste = ref<boolean>(loadFromStorage<boolean>("autoTrimOnPaste", true))
-const trimThreshold = ref<number>(loadFromStorage<number>("trimThreshold", 10))
 const tabNamePattern = ref<string>(loadFromStorage<string>("tabNamePattern", "HH:mm:ss"))
 const hotkey = ref<string>(
   loadFromStorage<string>("hotkey", "CommandOrControl+Shift+J"),
@@ -39,8 +37,6 @@ const autostart = ref<boolean>(loadFromStorage<boolean>("autostart", false))
 // Persist each setting on change
 watch(theme, (v) => saveToStorage("theme", v))
 watch(autoCopyOnClose, (v) => saveToStorage("autoCopyOnClose", v))
-watch(autoTrimOnPaste, (v) => saveToStorage("autoTrimOnPaste", v))
-watch(trimThreshold, (v) => saveToStorage("trimThreshold", v))
 watch(tabNamePattern, (v) => saveToStorage("tabNamePattern", v))
 watch(hotkey, (v) => saveToStorage("hotkey", v))
 watch(zoomSensitivity, (v) => saveToStorage("zoomSensitivity", v))
@@ -92,14 +88,6 @@ function setAutoCopyOnClose(value: boolean): void {
   autoCopyOnClose.value = value
 }
 
-function setAutoTrimOnPaste(value: boolean): void {
-  autoTrimOnPaste.value = value
-}
-
-function setTrimThreshold(value: number): void {
-  trimThreshold.value = Math.max(0, Math.min(50, value))
-}
-
 function setTabNamePattern(value: string): void {
   tabNamePattern.value = value
 }
@@ -121,8 +109,6 @@ export function useSettings() {
     // Reactive state
     theme,
     autoCopyOnClose,
-    autoTrimOnPaste,
-    trimThreshold,
     tabNamePattern,
     hotkey,
     zoomSensitivity,
@@ -131,8 +117,6 @@ export function useSettings() {
     // Update functions
     setTheme,
     setAutoCopyOnClose,
-    setAutoTrimOnPaste,
-    setTrimThreshold,
     setTabNamePattern,
     setHotkey,
     setZoomSensitivity,
