@@ -11,6 +11,7 @@ import type {
   CalloutToolSettings,
   TextToolSettings,
   RedactToolSettings,
+  CropToolSettings,
 } from "../types/tools"
 
 export interface FreehandToolSettings {
@@ -115,6 +116,10 @@ const REDACT_DEFAULTS: RedactToolSettings = {
   strength: 2,
 }
 
+const CROP_DEFAULTS: CropToolSettings = {
+  aspectRatio: "free",
+}
+
 // Module-level singleton for active tool
 const activeTool = ref<ToolId>("pen")
 
@@ -139,6 +144,7 @@ const lineSettings: Record<LineToolId, LineToolSettings> = {
 const calloutSettings: CalloutToolSettings = structuredClone(CALLOUT_DEFAULTS)
 const textSettings: TextToolSettings = structuredClone(TEXT_DEFAULTS)
 const redactSettings: RedactToolSettings = structuredClone(REDACT_DEFAULTS)
+const cropSettings: CropToolSettings = structuredClone(CROP_DEFAULTS)
 
 // Reactive version counter to trigger computed recalculation on settings update
 const settingsVersion = ref(0)
@@ -237,6 +243,17 @@ function updateRedactSettings(patch: Partial<RedactToolSettings>): void {
   settingsVersion.value++
 }
 
+/** Get current crop settings */
+function getCropSettings(): CropToolSettings {
+  return cropSettings
+}
+
+/** Update crop settings (partial patch) */
+function updateCropSettings(patch: Partial<CropToolSettings>): void {
+  if (patch.aspectRatio !== undefined) cropSettings.aspectRatio = patch.aspectRatio
+  settingsVersion.value++
+}
+
 export function useToolStore() {
   function setTool(tool: ToolId): void {
     if (tool !== activeTool.value) {
@@ -273,6 +290,8 @@ export function useToolStore() {
     updateTextSettings,
     getRedactSettings,
     updateRedactSettings,
+    getCropSettings,
+    updateCropSettings,
     settingsVersion,
   }
 }

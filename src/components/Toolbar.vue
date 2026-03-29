@@ -17,6 +17,7 @@ import {
   Hash,
   Type,
   ShieldOff,
+  Crop,
   Undo2,
   Redo2,
   Copy,
@@ -45,6 +46,7 @@ const tools: ToolDef[] = [
   { id: "callout", icon: Hash, label: "Callout (O)" },
   { id: "text", icon: Type, label: "Text (T)" },
   { id: "redact", icon: ShieldOff, label: "Redact (D)" },
+  { id: "crop", icon: Crop, label: "Crop (P)" },
 ];
 
 defineProps<{

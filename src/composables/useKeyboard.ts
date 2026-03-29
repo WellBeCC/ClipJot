@@ -2,13 +2,11 @@ import type { ToolId } from "../types/tools"
 
 /**
  * Tool selection via letter keys.
- * Uppercase letter in the tool name indicates the shortcut:
- * Selection, Pen, pencIl, Marker, Eraser, Arrow, Line,
- * Rectangle, Circle, callOut, Text, reDact
+ * Selection, pencIl, Marker, Eraser, Arrow, Line,
+ * Rectangle, Circle, callOut, Text, reDact, croP
  */
 export const TOOL_KEY_MAP: Record<string, ToolId> = {
   s: "select",
-  p: "pen",
   i: "pencil",
   m: "marker",
   e: "eraser",
@@ -19,6 +17,7 @@ export const TOOL_KEY_MAP: Record<string, ToolId> = {
   o: "callout",
   t: "text",
   d: "redact",
+  p: "crop",
 }
 
 /** Minimum interval between Cmd+C executions (milliseconds). */

@@ -22,7 +22,7 @@ export type LineToolId = "arrow" | "line"
 export type RedactStyle = "solid" | "pixelate" | "blur"
 
 /** Tools that have no sub-toolbar */
-export type NoSettingsToolId = "select" | "crop"
+export type NoSettingsToolId = "select"
 
 export function isFreehandTool(tool: ToolId): tool is FreehandToolId {
   return (
@@ -77,6 +77,13 @@ export interface RedactToolSettings {
   strength: RedactStrength
 }
 
+export type AspectRatioPreset = "free" | "original" | "16:9" | "4:3" | "1:1"
+
+/** Settings for crop tool */
+export interface CropToolSettings {
+  aspectRatio: AspectRatioPreset
+}
+
 /** Map of tool ID to its settings type */
 export interface ToolSettingsMap {
   pen: undefined // Uses FreehandToolSettings in useToolStore
@@ -91,5 +98,5 @@ export interface ToolSettingsMap {
   text: TextToolSettings
   redact: RedactToolSettings
   select: undefined
-  crop: undefined
+  crop: CropToolSettings
 }
