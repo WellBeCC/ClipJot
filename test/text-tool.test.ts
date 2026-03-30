@@ -25,6 +25,7 @@ function makeTextAnnotation(
     fontSize: 16,
     fill: false,
     fillColor: "#ffffff",
+    fixedWidth: false,
     rotation: 0,
     strokeColor: "#000000",
     strokeWidth: 0,

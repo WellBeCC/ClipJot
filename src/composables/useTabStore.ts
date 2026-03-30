@@ -8,6 +8,16 @@ import { createRedactionState } from "./useRedaction"
 import { useSettings } from "./useSettings"
 
 /**
+ * Create an independent blob URL from an existing one.
+ * This prevents revoking the source URL from breaking the clone.
+ */
+async function cloneBlobUrl(sourceUrl: string): Promise<string> {
+  const response = await fetch(sourceUrl)
+  const blob = await response.blob()
+  return URL.createObjectURL(blob)
+}
+
+/**
  * Format a tab name from a date and pattern string.
  * Supported tokens: HH (hours), mm (minutes), ss (seconds),
  * YYYY (year), MM (month), DD (day).
@@ -126,12 +136,16 @@ export function useTabStore() {
    * Duplicate the active tab into a new editing tab, copying all layer state
    * (strokes, annotations, redaction regions, crop) and undo history.
    */
-  function duplicateActiveTab(): Tab | null {
+  async function duplicateActiveTab(): Promise<Tab | null> {
     const source = activeTab.value
     if (!source?.imageUrl) return null
 
     const now = new Date()
-    const name = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`
+    const { tabNamePattern } = useSettings()
+    const name = formatTabName(now, tabNamePattern.value)
+
+    // Clone the blob URL so each tab owns an independent URL
+    const ownedUrl = await cloneBlobUrl(source.imageUrl)
 
     // Deep-copy drawing state (strokes with fresh cached paths)
     const newDrawingState = createDrawingState()
@@ -166,7 +180,7 @@ export function useTabStore() {
       id: crypto.randomUUID(),
       name,
       type: "editing",
-      imageUrl: source.imageUrl,
+      imageUrl: ownedUrl,
       imageWidth: source.imageWidth,
       imageHeight: source.imageHeight,
       copiedSinceLastEdit: false,
@@ -192,7 +206,7 @@ export function useTabStore() {
    * Call this AFTER the first edit on the clipboard tab has been committed
    * so that the edit is preserved in the new tab's undo history.
    */
-  function promoteClipboardTab(): Tab | null {
+  async function promoteClipboardTab(): Promise<Tab | null> {
     const source = tabs.value.find((t) => t.type === "clipboard")
     if (!source?.imageUrl) return null
 
@@ -200,12 +214,15 @@ export function useTabStore() {
     const { tabNamePattern } = useSettings()
     const name = formatTabName(now, tabNamePattern.value)
 
+    // Clone the blob URL so revoking the clipboard URL doesn't break this tab
+    const ownedUrl = await cloneBlobUrl(source.imageUrl)
+
     // Move all state objects to the new editing tab
     const tab: Tab = {
       id: crypto.randomUUID(),
       name,
       type: "editing",
-      imageUrl: source.imageUrl,
+      imageUrl: ownedUrl,
       imageWidth: source.imageWidth,
       imageHeight: source.imageHeight,
       copiedSinceLastEdit: false,

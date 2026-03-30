@@ -40,6 +40,16 @@ export function sanitizeHtml(dirty: string): string {
     "",
   )
 
+  // Convert block elements (div, p) to <br> before stripping, so line breaks
+  // are preserved. WebKit's contenteditable uses <div> for Enter key.
+  html = html.replace(/<\/?(div|p)\b[^>]*>/gi, (match) => {
+    // Opening div/p → insert <br> before content (except at the very start)
+    if (!match.startsWith("</")) return "<br>"
+    return ""
+  })
+  // Clean up duplicate <br> at the start
+  html = html.replace(/^(<br>\s*)+/, "")
+
   // Second pass: process all remaining tags
   html = html.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)?\/?>/g, (match, tagName: string, attrs: string | undefined) => {
     const tag = tagName.toLowerCase()

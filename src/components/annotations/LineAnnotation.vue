@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import type { LineAnnotation } from "../../types/annotations"
 
-defineProps<{
+const props = defineProps<{
   annotation: LineAnnotation
 }>()
 
+const emit = defineEmits<{
+  select: [id: string, additive: boolean]
+}>()
+
 const HIT_AREA_WIDTH = 16
+
+function onPointerDown(e: PointerEvent): void {
+  e.stopPropagation()
+  emit("select", props.annotation.id, e.shiftKey || e.metaKey)
+}
 </script>
 
 <template>
-  <g class="line-annotation" :data-annotation-id="annotation.id">
+  <g class="line-annotation" :data-annotation-id="annotation.id" @pointerdown="onPointerDown">
     <!-- Invisible wide hit area for easier selection -->
     <line
       :x1="annotation.x"

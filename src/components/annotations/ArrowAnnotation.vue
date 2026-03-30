@@ -6,6 +6,15 @@ const props = defineProps<{
   annotation: ArrowAnnotation
 }>()
 
+const emit = defineEmits<{
+  select: [id: string, additive: boolean]
+}>()
+
+function onPointerDown(e: PointerEvent): void {
+  e.stopPropagation()
+  emit("select", props.annotation.id, e.shiftKey || e.metaKey)
+}
+
 const HIT_AREA_WIDTH = 16
 
 /** Arrowhead dimensions scale with stroke width for visual balance */
@@ -81,7 +90,7 @@ const arrowheadPoints = computed(() => {
 </script>
 
 <template>
-  <g class="arrow-annotation" :data-annotation-id="annotation.id">
+  <g class="arrow-annotation" :data-annotation-id="annotation.id" @pointerdown="onPointerDown">
     <!-- Invisible wide hit area for easier selection -->
     <path
       :d="bezierPath"
@@ -134,17 +143,6 @@ const arrowheadPoints = computed(() => {
         stroke-width="1"
         stroke-dasharray="4 3"
         class="arrow-guide-line"
-      />
-      <!-- Control point handle -->
-      <circle
-        :cx="controlAbs.x"
-        :cy="controlAbs.y"
-        r="5"
-        fill="#AF3029"
-        stroke="white"
-        stroke-width="1.5"
-        class="arrow-control-handle"
-        style="cursor: move; pointer-events: auto"
       />
     </template>
   </g>

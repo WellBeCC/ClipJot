@@ -240,6 +240,7 @@ describe("CSS variable resolution", () => {
         fontSize: 16,
         fill: true,
         fillColor: "var(--text-bg, #ffeedd)",
+        fixedWidth: false,
       },
     ]
     const svg = serializeAnnotationsToSvg(annotations, 400, 400)
@@ -422,6 +423,7 @@ describe("All layer types", () => {
         fontSize: 14,
         fill: false,
         fillColor: "#000",
+        fixedWidth: false,
       },
     ]
 

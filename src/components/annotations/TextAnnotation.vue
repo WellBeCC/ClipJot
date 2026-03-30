@@ -29,15 +29,20 @@ function onDoubleClick(e: MouseEvent): void {
     @pointerdown="onPointerDown"
     @dblclick="onDoubleClick"
   >
-    <!-- Background fill (optional) -->
+    <!--
+      Hit area — always present for pointer events.
+      Dashed frame only visible while editing (the TextEditor overlay draws
+      its own border) or when the annotation has no content yet.
+    -->
     <rect
       :x="annotation.x"
       :y="annotation.y"
       :width="annotation.width"
       :height="annotation.height"
-      :fill="annotation.fill ? annotation.fillColor : 'none'"
-      :stroke="annotation.strokeColor"
-      :stroke-width="annotation.strokeWidth"
+      :fill="annotation.fill ? annotation.fillColor : 'transparent'"
+      :stroke="isEditing || !annotation.htmlContent ? '#B7B5AC' : 'none'"
+      stroke-width="1"
+      stroke-dasharray="4 3"
       class="text-hit-area"
     />
 
@@ -48,6 +53,7 @@ function onDoubleClick(e: MouseEvent): void {
       :y="annotation.y"
       :width="annotation.width"
       :height="annotation.height"
+      :style="{ overflow: annotation.fixedWidth ? 'hidden' : 'visible' }"
     >
       <div
         xmlns="http://www.w3.org/1999/xhtml"
@@ -56,14 +62,10 @@ function onDoubleClick(e: MouseEvent): void {
           fontFamily: annotation.fontFamily,
           fontSize: annotation.fontSize + 'px',
           color: annotation.strokeColor,
-          width: annotation.width + 'px',
-          height: annotation.height + 'px',
-          overflow: 'hidden',
           pointerEvents: 'none',
           userSelect: 'none',
           padding: '4px',
           boxSizing: 'border-box',
-          wordWrap: 'break-word',
           whiteSpace: 'pre-wrap',
           lineHeight: '1.4',
         }"

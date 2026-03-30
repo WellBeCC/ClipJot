@@ -128,6 +128,7 @@ function makeText(overrides?: Partial<TextAnnotation>): TextAnnotation {
     selected: false,
     fill: false,
     fillColor: "#ffffff",
+    fixedWidth: false,
     ...overrides,
   }
 }

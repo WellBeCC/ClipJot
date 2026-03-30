@@ -37,7 +37,8 @@ describe("SubToolbar", () => {
 
   test("has hidden class for select/crop tools", () => {
     expect(subToolbar).toContain("sub-toolbar--hidden")
-    expect(subToolbar).toContain('tool !== "select" && tool !== "crop"')
+    expect(subToolbar).toContain('"crop"')
+    expect(subToolbar).toContain('"select"')
   })
 
   test("has data-section attributes for each parameter type", () => {

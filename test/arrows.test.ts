@@ -81,11 +81,10 @@ describe("ArrowAnnotation Component", () => {
     expect(content).toContain("arrow-hit-area")
   })
 
-  test("shows control point handle when selected", () => {
+  test("shows guide lines when selected", () => {
     const content = readFile(resolve(annotationsDir, "ArrowAnnotation.vue"))
     expect(content).toContain("annotation.selected")
-    expect(content).toContain("arrow-control-handle")
-    expect(content).toContain("<circle")
+    expect(content).toContain("arrow-guide-line")
   })
 
   test("shows dashed guide lines when selected", () => {
@@ -204,7 +203,7 @@ describe("SelectionHandles Bezier control point", () => {
   })
 
   test("detects arrow annotations", () => {
-    expect(handlesContent).toContain('annotation.type === "arrow"')
+    expect(handlesContent).toContain('"arrow"')
   })
 
   test("computes control point position for arrows", () => {

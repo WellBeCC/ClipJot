@@ -25,7 +25,8 @@ const selectedAnnotation = computed<Annotation | null>(() => {
   return store.value?.getAnnotation(id) ?? null
 })
 
-const visible = computed(() => selectedAnnotation.value !== null)
+/** Floating panel is fully replaced by the fixed SubToolbar */
+const visible = computed(() => false)
 
 /** Whether the annotation supports fill (rect, ellipse) */
 const hasFill = computed(() => {

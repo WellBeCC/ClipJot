@@ -29,6 +29,13 @@ defineProps<{
 
 const emit = defineEmits<{
   "start-text-editing": [id: string]
+  "resize-text": [annotationId: string, width: number, newX: number]
+  "update-annotation": [annotationId: string, patch: Partial<Annotation>]
+  "commit-annotation-update": [
+    annotationId: string,
+    before: Partial<Annotation>,
+    after: Partial<Annotation>,
+  ]
 }>()
 
 const { editingAnnotationId } = useTextEditing()
@@ -52,6 +59,22 @@ function onBackgroundPointerDown(): void {
   if (isSelectMode.value) {
     deselect()
   }
+}
+
+function onResizeText(annotationId: string, width: number, newX: number): void {
+  emit("resize-text", annotationId, width, newX)
+}
+
+function onUpdateAnnotation(annotationId: string, patch: Partial<Annotation>): void {
+  emit("update-annotation", annotationId, patch)
+}
+
+function onCommitAnnotationUpdate(
+  annotationId: string,
+  before: Partial<Annotation>,
+  after: Partial<Annotation>,
+): void {
+  emit("commit-annotation-update", annotationId, before, after)
 }
 
 function getSelectedAnnotation(
@@ -90,12 +113,14 @@ function getSelectedAnnotation(
       <ArrowAnnotation
         v-else-if="annotation.type === 'arrow'"
         :annotation="annotation as ArrowAnnotationType"
+        @select="onAnnotationSelect"
       />
 
       <!-- Line annotation (simple straight line) -->
       <LineAnnotation
         v-else-if="annotation.type === 'line'"
         :annotation="annotation as LineAnnotationType"
+        @select="onAnnotationSelect"
       />
 
       <!-- Callout annotation (numbered circle) -->
@@ -122,6 +147,9 @@ function getSelectedAnnotation(
         :bounds="
           getAnnotationBounds(getSelectedAnnotation(id, annotations)!)
         "
+        @resize-text="onResizeText"
+        @update="onUpdateAnnotation"
+        @update-commit="onCommitAnnotationUpdate"
       />
     </template>
   </svg>

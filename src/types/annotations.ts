@@ -57,6 +57,8 @@ export interface TextAnnotation extends BaseAnnotation {
   fontSize: number
   fill: boolean
   fillColor: string
+  /** When true the user has manually set the width; text wraps and overflow is clipped. */
+  fixedWidth: boolean
 }
 
 export type Annotation =

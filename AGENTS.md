@@ -37,7 +37,8 @@ AI-friendly output from Bun's test runner:
 export AGENT=1
 ```
 
-After any code changes, when all tests pass, commit with a message that includes the relevant issue number and a brief description of the change. For example:
+After any changes, make sure all tests pass. Fix the tests where appropriate.
+Write new tests for any new features or bug fixes. Once all tests are passing, commit your changes with a message that includes the relevant issue number and a brief description of the change. For example:
 
 ```bash
 git commit -m "Fixes#123: Corrected image cropping logic to handle edge cases"
