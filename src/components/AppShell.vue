@@ -11,8 +11,14 @@ import { readClipboardImage } from "../composables/useClipboard";
 import { copyTabToClipboard, saveTabToFile } from "../composables/useExport";
 import { useMenuEvents } from "../composables/useMenuEvents";
 
-const { activeTab, updateClipboardImage, markTabCopied, duplicateActiveTab } =
-  useTabStore();
+const {
+  activeTab,
+  clipboardTab,
+  setActiveTab,
+  updateClipboardImage,
+  markTabCopied,
+  duplicateActiveTab,
+} = useTabStore();
 const { success, error } = useToast();
 
 const showSettings = ref(false);
@@ -102,6 +108,9 @@ async function handleRefresh(): Promise<void> {
     const image = await readClipboardImage();
     if (image) {
       updateClipboardImage(image.url, image.width, image.height);
+      if (clipboardTab.value) {
+        setActiveTab(clipboardTab.value.id);
+      }
       success("Clipboard refreshed");
     } else {
       error("No image in clipboard");
