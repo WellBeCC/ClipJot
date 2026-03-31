@@ -26,18 +26,15 @@ export async function readClipboardImage(): Promise<ClipboardImage | null> {
     const ctx = canvas.getContext("2d")!
     const imageData = new ImageData(new Uint8ClampedArray(rgba), width, height)
     ctx.putImageData(imageData, 0, 0)
-    const blob = await canvas.convertToBlob({ type: "image/png" })
+
+    // Use lossy WebP for faster encoding than PNG on large images.
+    // The blob is only used for display; exports re-flatten from source.
+    const blob = await canvas.convertToBlob({ type: "image/webp", quality: 0.92 })
     const url = URL.createObjectURL(blob)
 
-    // Read back the true dimensions from the created blob.
-    // image.size() may return logical (point) dimensions on Retina,
-    // while the PNG blob encodes at physical pixel dimensions.
-    const bitmap = await createImageBitmap(blob)
-    const trueWidth = bitmap.width
-    const trueHeight = bitmap.height
-    bitmap.close()
-
-    return { url, width: trueWidth, height: trueHeight }
+    // The OffscreenCanvas dimensions match the RGBA buffer exactly,
+    // so width/height from Tauri are the true pixel dimensions.
+    return { url, width, height }
   } catch (err) {
     console.warn("[ClipJot] Clipboard read failed:", err)
     return null

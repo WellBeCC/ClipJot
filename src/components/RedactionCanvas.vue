@@ -88,6 +88,23 @@ function renderAll(): void {
   }
 }
 
+// Resize canvases when image dimensions change (e.g., switching tabs)
+watch(
+  [() => props.imageWidth, () => props.imageHeight],
+  async ([w, h]) => {
+    const canvas = canvasRef.value
+    if (!canvas || !ctx) return
+    canvas.width = w
+    canvas.height = h
+    if (workCanvas && workCtx) {
+      workCanvas.width = w
+      workCanvas.height = h
+    }
+    await loadBaseImage()
+    renderAll()
+  },
+)
+
 // Re-render when regions change (add/remove/mutate via undo/redo)
 const regionsRef = toRef(() => props.redactionState.regions.value)
 watch(regionsRef, renderAll)

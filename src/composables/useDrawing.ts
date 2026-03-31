@@ -81,9 +81,13 @@ export function createDrawingState(): DrawingState {
   ): void {
     ctx.clearRect(0, 0, width, height)
 
-    // Restore from checkpoint if available (B2)
-    if (checkpoint) {
-      ctx.putImageData(checkpoint.imageData, 0, 0)
+    // Restore from checkpoint if available (B2).
+    // Uses canvas-to-canvas copy (GPU-backed) instead of putImageData.
+    if (checkpoint && checkpoint.canvas.width === width && checkpoint.canvas.height === height) {
+      ctx.drawImage(checkpoint.canvas, 0, 0)
+    } else {
+      // Checkpoint is for a different size — discard it
+      checkpoint = null
     }
 
     // Replay strokes after checkpoint
@@ -104,9 +108,20 @@ export function createDrawingState(): DrawingState {
     const checkpointIndex = checkpoint?.strokeCount ?? 0
     const strokesSinceCheckpoint = strokes.value.length - checkpointIndex
     if (strokesSinceCheckpoint >= CHECKPOINT_INTERVAL) {
-      checkpoint = {
-        imageData: ctx.getImageData(0, 0, width, height),
-        strokeCount: strokes.value.length,
+      // Reuse existing checkpoint canvas if same size, otherwise create new
+      let cpCanvas: HTMLCanvasElement
+      if (checkpoint?.canvas && checkpoint.canvas.width === width && checkpoint.canvas.height === height) {
+        cpCanvas = checkpoint.canvas
+      } else {
+        cpCanvas = document.createElement("canvas")
+        cpCanvas.width = width
+        cpCanvas.height = height
+      }
+      const cpCtx = cpCanvas.getContext("2d")
+      if (cpCtx) {
+        cpCtx.clearRect(0, 0, width, height)
+        cpCtx.drawImage(ctx.canvas, 0, 0)
+        checkpoint = { canvas: cpCanvas, strokeCount: strokes.value.length }
       }
     }
   }

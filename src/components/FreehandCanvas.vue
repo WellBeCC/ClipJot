@@ -23,7 +23,14 @@ const props = defineProps<{
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
 let currentPoints: [number, number, number][] = []
-let preStrokeSnapshot: ImageData | null = null
+/**
+ * Backing canvas for O(1) live stroke preview.
+ * Uses drawImage(canvas) instead of getImageData/putImageData
+ * to stay GPU-backed and avoid costly CPU readback on large images.
+ */
+let snapshotCanvas: HTMLCanvasElement | null = null
+let snapshotCtx: CanvasRenderingContext2D | null = null
+let hasSnapshot = false
 let rafId: number | null = null
 let isDrawing = false
 /** Cached viewport element for coordinate transforms during a stroke */
@@ -41,6 +48,17 @@ const pointerEventsStyle = computed(() =>
   isFreehandTool(activeTool.value) ? "auto" : "none",
 )
 
+function ensureSnapshotCanvas(w: number, h: number): void {
+  if (!snapshotCanvas) {
+    snapshotCanvas = document.createElement("canvas")
+    snapshotCtx = snapshotCanvas.getContext("2d")
+  }
+  if (snapshotCanvas.width !== w || snapshotCanvas.height !== h) {
+    snapshotCanvas.width = w
+    snapshotCanvas.height = h
+  }
+}
+
 onMounted(() => {
   const canvas = canvasRef.value
   if (!canvas) return
@@ -48,7 +66,8 @@ onMounted(() => {
   // Canvas buffer = image dimensions (B1: no devicePixelRatio multiplication)
   canvas.width = props.imageWidth
   canvas.height = props.imageHeight
-  ctx = canvas.getContext("2d", { willReadFrequently: true })
+  ctx = canvas.getContext("2d")
+  ensureSnapshotCanvas(props.imageWidth, props.imageHeight)
   if (ctx) {
     props.drawingState.redrawAll(ctx, props.imageWidth, props.imageHeight)
   }
@@ -57,6 +76,19 @@ onMounted(() => {
 onUnmounted(() => {
   if (rafId !== null) cancelAnimationFrame(rafId)
 })
+
+// Resize canvas when image dimensions change (e.g., switching tabs)
+watch(
+  [() => props.imageWidth, () => props.imageHeight],
+  ([w, h]) => {
+    const canvas = canvasRef.value
+    if (!canvas || !ctx) return
+    canvas.width = w
+    canvas.height = h
+    ensureSnapshotCanvas(w, h)
+    props.drawingState.redrawAll(ctx, w, h)
+  },
+)
 
 // Re-render when strokes change externally (e.g., undo/redo)
 watch(
@@ -97,13 +129,13 @@ function onPointerDown(e: PointerEvent): void {
   strokeCompositeOp =
     activeTool.value === "eraser" ? "destination-out" : "source-over"
 
-  // Save pre-stroke snapshot for O(1) live rendering (B4)
-  preStrokeSnapshot = ctx.getImageData(
-    0,
-    0,
-    props.imageWidth,
-    props.imageHeight,
-  )
+  // Save pre-stroke snapshot for O(1) live rendering (B4).
+  // Uses canvas-to-canvas copy (GPU-backed) instead of getImageData (CPU readback).
+  if (snapshotCtx && canvasRef.value) {
+    snapshotCtx.clearRect(0, 0, props.imageWidth, props.imageHeight)
+    snapshotCtx.drawImage(canvasRef.value, 0, 0)
+    hasSnapshot = true
+  }
 
   const pt = pointerToImage(e)
   if (!pt) return
@@ -133,10 +165,11 @@ function onPointerMove(e: PointerEvent): void {
 /** O(1) live stroke preview: restore snapshot + render current stroke only (B4) */
 function renderLiveStroke(): void {
   rafId = null
-  if (!ctx || !preStrokeSnapshot || !strokeSettings) return
+  if (!ctx || !hasSnapshot || !snapshotCanvas || !strokeSettings) return
 
-  // Restore pre-stroke state
-  ctx.putImageData(preStrokeSnapshot, 0, 0)
+  // Restore pre-stroke state via GPU-backed canvas copy
+  ctx.clearRect(0, 0, props.imageWidth, props.imageHeight)
+  ctx.drawImage(snapshotCanvas, 0, 0)
 
   const opts: StrokeOptions = strokeSettings.strokeOptions
   const outline = getStroke(currentPoints, opts)
@@ -164,11 +197,12 @@ function onPointerUp(_e: PointerEvent): void {
 
   if (currentPoints.length < 2) {
     // Too short — restore pre-stroke state
-    if (preStrokeSnapshot) {
-      ctx.putImageData(preStrokeSnapshot, 0, 0)
+    if (hasSnapshot && snapshotCanvas) {
+      ctx.clearRect(0, 0, props.imageWidth, props.imageHeight)
+      ctx.drawImage(snapshotCanvas, 0, 0)
     }
     currentPoints = []
-    preStrokeSnapshot = null
+    hasSnapshot = false
     strokeSettings = null
     viewportEl = null
     return
@@ -202,7 +236,7 @@ function onPointerUp(_e: PointerEvent): void {
   }
 
   currentPoints = []
-  preStrokeSnapshot = null
+  hasSnapshot = false
   strokeSettings = null
   viewportEl = null
 }

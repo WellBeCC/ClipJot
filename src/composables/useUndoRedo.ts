@@ -21,6 +21,8 @@ export interface UndoRedoInstance {
   readonly isOperationInProgress: Ref<boolean>
   /** Set callback for when a command is pruned from history */
   setOnPruned(callback: ((command: Command) => void) | null): void
+  /** Set callback for when a command is pushed (edit made) */
+  setOnPush(callback: (() => void) | null): void
   /** Clear all history (for tab close cleanup) */
   clear(): void
   /** Get the current cursor position */
@@ -42,6 +44,7 @@ export function createUndoRedo(maxDepth = 50): UndoRedoInstance {
   const savedAtIndex = ref(-1)
   const isOperationInProgress = ref(false)
   let onPruned: ((command: Command) => void) | null = null
+  let onPush: (() => void) | null = null
 
   const canUndo = computed(
     () => cursor.value >= 0 && !isOperationInProgress.value,
@@ -69,6 +72,7 @@ export function createUndoRedo(maxDepth = 50): UndoRedoInstance {
 
     commands.value = newStack
     command.execute()
+    onPush?.()
   }
 
   function undo(): void {
@@ -93,11 +97,16 @@ export function createUndoRedo(maxDepth = 50): UndoRedoInstance {
     onPruned = callback
   }
 
+  function setOnPush(callback: (() => void) | null): void {
+    onPush = callback
+  }
+
   function clear(): void {
     commands.value = []
     cursor.value = -1
     savedAtIndex.value = -1
     onPruned = null
+    onPush = null
   }
 
   return {
@@ -110,6 +119,7 @@ export function createUndoRedo(maxDepth = 50): UndoRedoInstance {
     markSaved,
     isOperationInProgress,
     setOnPruned,
+    setOnPush,
     clear,
     cursor,
     commands,

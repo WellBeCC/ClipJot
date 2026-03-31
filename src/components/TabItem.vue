@@ -123,6 +123,8 @@ function handleClose(e: MouseEvent): void {
 
 .tab-item__close {
   display: none;
+  align-items: center;
+  justify-content: center;
   margin-left: 2px;
   font-size: 16px;
   line-height: 1;

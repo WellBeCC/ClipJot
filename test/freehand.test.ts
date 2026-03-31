@@ -26,7 +26,7 @@ describe("Freehand Types", () => {
   test("freehand.ts defines FreehandCheckpoint interface", () => {
     const content = readFileSync(resolve(typesDir, "freehand.ts"), "utf-8")
     expect(content).toContain("export interface FreehandCheckpoint")
-    expect(content).toContain("imageData: ImageData")
+    expect(content).toContain("canvas: HTMLCanvasElement")
     expect(content).toContain("strokeCount: number")
   })
 
@@ -191,7 +191,7 @@ describe("Drawing Composable", () => {
     )
     expect(content).toContain("CHECKPOINT_INTERVAL")
     expect(content).toContain("maybeCreateCheckpoint")
-    expect(content).toContain("getImageData")
+    expect(content).toContain("drawImage")
   })
 
   test("useDrawing.ts caches Path2D objects (B3)", () => {
@@ -432,9 +432,9 @@ describe("FreehandCanvas Component", () => {
       resolve(componentsDir, "FreehandCanvas.vue"),
       "utf-8",
     )
-    expect(content).toContain("preStrokeSnapshot")
-    expect(content).toContain("putImageData(preStrokeSnapshot")
-    expect(content).toContain("getImageData")
+    expect(content).toContain("snapshotCanvas")
+    expect(content).toContain("drawImage(snapshotCanvas")
+    expect(content).toContain("hasSnapshot")
   })
 
   test("FreehandCanvas.vue uses getCoalescedEvents (B5)", () => {

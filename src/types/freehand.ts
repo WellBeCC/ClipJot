@@ -18,8 +18,10 @@ export interface FreehandStroke {
 }
 
 export interface FreehandCheckpoint {
-  /** ImageData snapshot of all committed strokes up to strokeCount */
-  imageData: ImageData
+  /** Canvas snapshot of all committed strokes up to strokeCount.
+   *  Uses an offscreen canvas (GPU-backed) instead of ImageData to
+   *  avoid expensive CPU readback on large images. */
+  canvas: HTMLCanvasElement
   /** Number of strokes baked into this checkpoint */
   strokeCount: number
 }

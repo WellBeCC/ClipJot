@@ -127,6 +127,7 @@ export function useTabStore() {
       redactionState: createRedactionState(),
     }
 
+    tab.undoRedo.setOnPush(() => markTabEdited(tab.id))
     tabs.value = [...tabs.value, tab]
     activeTabId.value = tab.id
     return tab
@@ -191,6 +192,7 @@ export function useTabStore() {
       redactionState: newRedactionState,
     }
 
+    tab.undoRedo.setOnPush(() => markTabEdited(tab.id))
     tabs.value = [...tabs.value, tab]
     activeTabId.value = tab.id
     return tab
@@ -243,6 +245,7 @@ export function useTabStore() {
       redactionState: createRedactionState(),
     }
 
+    tab.undoRedo.setOnPush(() => markTabEdited(tab.id))
     tabs.value = tabs.value.map((t) =>
       t.type === "clipboard" ? resetClipboard : t,
     ).concat(tab)
