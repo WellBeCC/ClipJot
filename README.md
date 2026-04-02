@@ -1,7 +1,87 @@
-# Tauri + Vue + TypeScript
+# ClipJot
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A lightweight desktop app for editing images directly from the clipboard. Paste an image, annotate it, and copy it back — all without leaving your workflow.
 
-## Recommended IDE Setup
+## Features
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- Paste images from clipboard and edit them instantly
+- Annotations: arrows, lines, rectangles, ellipses, callouts, text
+- Freehand drawing
+- Redaction tools
+- Crop with aspect ratio presets
+- Undo/redo
+- Multiple tabs
+- Copy edited image back to clipboard
+- Global keyboard shortcut to open/focus the app
+
+## Tech Stack
+
+- **Runtime/Tooling:** Bun
+- **Frontend:** Vue 3, TypeScript, Vite
+- **Desktop:** Tauri v2
+- **Styling:** Flexoki color scheme
+
+## Prerequisites
+
+- [Bun](https://bun.sh/)
+- [Rust](https://www.rust-lang.org/tools/install) (for Tauri)
+- [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS
+
+## Development
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+Start the dev server (Tauri app with hot reload):
+
+```bash
+bun run tauri dev
+```
+
+Run the Vite dev server only (no desktop window):
+
+```bash
+bun run dev
+```
+
+## Building
+
+```bash
+bun run tauri build
+```
+
+This produces a native app bundle in `src-tauri/target/release/bundle/`.
+
+## Testing
+
+```bash
+bun test
+```
+
+## Type Checking
+
+```bash
+bun run tsc
+```
+
+## Project Structure
+
+```
+ClipJot/
+├── src/                    # Vue frontend
+│   ├── components/         # UI components
+│   ├── composables/        # Vue composables (state, logic)
+│   ├── commands/           # Undo/redo command objects
+│   ├── types/              # TypeScript type definitions
+│   ├── utils/              # Utility functions
+│   └── assets/             # CSS and static assets
+├── src-tauri/              # Tauri/Rust backend
+│   ├── src/                # Rust source (lib.rs, main.rs)
+│   ├── icons/              # App icons
+│   └── tauri.conf.json     # Tauri configuration
+├── test/                   # Unit tests
+└── docs/                   # Project documentation and plans
+```
