@@ -1,0 +1,18 @@
+---
+import SubscribeForm from './react/SubscribeForm';
+---
+
+<section id="subscribe" class="py-20 bg-[var(--background)]">
+  <div class="mx-auto max-w-lg px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
+      Stay in the loop
+    </h2>
+    <p class="mt-3 text-[var(--muted-foreground)]">
+      Get notified when we ship new features and releases. No spam — just ClipJot updates.
+    </p>
+
+    <div class="mt-8">
+      <SubscribeForm client:load />
+    </div>
+  </div>
+</section>

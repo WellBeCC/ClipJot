@@ -1,0 +1,83 @@
+---
+import '../styles/global.css';
+import CookieConsent from '../components/CookieConsent.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+}
+
+const {
+  title = 'ClipJot – Free Screenshot Editor for Mac & Windows',
+  description = 'Paste any image from your clipboard, add arrows, text, and shapes, then copy it back in seconds. Free screenshot editor for macOS and Windows.',
+  ogImage = `${Astro.site}og-image.png`,
+  canonicalUrl = Astro.url.href,
+} = Astro.props;
+
+const gaId = import.meta.env.PUBLIC_GA_ID;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'ClipJot',
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: ['macOS', 'Windows'],
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  description,
+  url: 'https://lumeer.github.io/ClipJot/',
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ClipJot — Free Clipboard Screenshot Editor" />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="ClipJot" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ClipJot — Free Clipboard Screenshot Editor" />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- GA placeholder — actual script injected only after cookie consent -->
+    {gaId && <meta name="ga-id" content={gaId} />}
+  </head>
+  <body>
+    <slot />
+    <CookieConsent />
+  </body>
+</html>

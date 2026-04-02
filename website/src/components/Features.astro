@@ -1,0 +1,59 @@
+---
+const features = [
+  {
+    title: 'Arrows & Shapes',
+    description: 'Draw arrows, rectangles, circles, and lines to guide attention to exactly what matters.',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  },
+  {
+    title: 'Text Annotations',
+    description: 'Add labels, callouts, and notes directly on the image with full control over size and color.',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
+  },
+  {
+    title: 'Redact & Blur',
+    description: 'Cover sensitive data — passwords, emails, personal information — before sharing with a click.',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z" fill="currentColor" opacity="0.3"/></svg>`,
+  },
+  {
+    title: 'Crop',
+    description: 'Trim the image to focus on just the relevant portion before annotating or copying.',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 2 6 22"/><polyline points="2 6 22 6"/><path d="M6 18H4a2 2 0 0 1-2-2V4"/><path d="M18 6v2a2 2 0 0 1-2 2H6"/></svg>`,
+  },
+  {
+    title: 'Clipboard Round-Trip',
+    description: 'Paste in, annotate, copy back. No file dialogs, no saving. The entire workflow stays in your clipboard.',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>`,
+  },
+  {
+    title: 'Non-Destructive Layers',
+    description: 'Every annotation is its own layer. Select, move, resize, recolor, or delete any element at any time.',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+  },
+];
+---
+
+<section id="features" class="py-20 bg-[var(--background)]">
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+        Everything you need, nothing you don't
+      </h2>
+      <p class="mt-4 text-lg text-[var(--muted-foreground)]">
+        Built for fast, focused image editing — directly from the clipboard.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map((feature) => (
+        <div class="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-6 hover:border-[var(--flexoki-blue-300)] transition-colors">
+          <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-[var(--accent)] text-[var(--flexoki-blue-600)]">
+            <Fragment set:html={feature.icon} />
+          </div>
+          <h3 class="text-base font-semibold text-[var(--foreground)]">{feature.title}</h3>
+          <p class="mt-2 text-sm text-[var(--muted-foreground)] leading-relaxed">{feature.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,137 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+const lastUpdated = '2 April 2026';
+---
+
+<BaseLayout
+  title="Privacy Policy – ClipJot"
+  description="Privacy Policy for ClipJot. Learn how we collect and use your data."
+>
+  <Header />
+  <main class="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+    <h1 class="text-3xl font-bold tracking-tight text-[var(--foreground)] mb-2">
+      Privacy Policy
+    </h1>
+    <p class="text-sm text-[var(--muted-foreground)] mb-10">Last updated: {lastUpdated}</p>
+
+    <div class="space-y-8 text-[var(--foreground)]">
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">1. Overview</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          This Privacy Policy explains how ClipJot ("we", "our") collects and uses data when you visit
+          this website or subscribe to product updates. We collect minimal data and never sell your
+          personal information.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">2. Data We Collect</h2>
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-medium mb-1">Email address (subscription only)</h3>
+            <p class="text-sm text-[var(--muted-foreground)] leading-relaxed">
+              If you choose to subscribe to ClipJot updates, we collect your email address. This is
+              the only personal data we actively collect. Subscribing is entirely optional.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-medium mb-1">Analytics data (with consent)</h3>
+            <p class="text-sm text-[var(--muted-foreground)] leading-relaxed">
+              If you accept analytics cookies, we use Google Analytics 4 to understand how visitors
+              find and use this website. IP anonymisation is enabled. We do not use this data to
+              identify individuals. You can opt out at any time via the cookie preferences panel
+              (accessible from the cookie banner).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">3. How We Use Your Data</h2>
+        <ul class="list-disc list-inside space-y-2 text-[var(--muted-foreground)] leading-relaxed text-sm">
+          <li><strong class="text-[var(--foreground)]">Email address</strong> — used solely to send ClipJot release and feature update notifications. We will never use it for unrelated marketing.</li>
+          <li><strong class="text-[var(--foreground)]">Analytics data</strong> — used in aggregate to understand traffic sources and page performance, which helps us improve the product.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">4. Legal Basis (GDPR)</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed text-sm">
+          Where GDPR applies, the legal basis for processing your email address is your explicit
+          consent (Art. 6(1)(a) GDPR), given via the subscription form. You may withdraw consent at
+          any time by unsubscribing (see Section 6).
+        </p>
+        <p class="text-[var(--muted-foreground)] leading-relaxed text-sm mt-2">
+          Analytics cookies are only set after explicit consent via the cookie banner.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">5. Data Retention</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed text-sm">
+          We retain your email address until you unsubscribe or request deletion. Analytics data is
+          retained per Google Analytics' default retention settings (14 months).
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">6. Your Rights</h2>
+        <ul class="list-disc list-inside space-y-2 text-[var(--muted-foreground)] leading-relaxed text-sm">
+          <li><strong class="text-[var(--foreground)]">Access</strong> — you may request a copy of the personal data we hold about you.</li>
+          <li><strong class="text-[var(--foreground)]">Deletion</strong> — you may request deletion of your email address at any time.</li>
+          <li><strong class="text-[var(--foreground)]">Unsubscribe</strong> — every email we send contains an unsubscribe link. Clicking it immediately removes you from the list.</li>
+          <li><strong class="text-[var(--foreground)]">Cookie withdrawal</strong> — you can change or withdraw cookie consent at any time by clicking "Manage preferences" in the cookie banner.</li>
+        </ul>
+        <p class="text-sm text-[var(--muted-foreground)] mt-3">
+          To exercise your rights, open an issue on{' '}
+          <a
+            href="https://github.com/Lumeer/ClipJot"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline text-[var(--foreground)]"
+          >
+            GitHub
+          </a>{' '}
+          or use the unsubscribe link in any email.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">7. Third Parties</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed text-sm">
+          We use third-party services to operate this website. See our{' '}
+          <a href={`${base}data-processing`} class="underline text-[var(--foreground)]">
+            Data Processing page
+          </a>{' '}
+          for the full list. We do not sell your data to any third party.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">8. Cookies</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed text-sm">
+          We use two categories of cookies:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-[var(--muted-foreground)] mt-2">
+          <li><strong class="text-[var(--foreground)]">Strictly necessary</strong> — used to remember your cookie preferences. These are set regardless of your consent choice.</li>
+          <li><strong class="text-[var(--foreground)]">Analytics (Google Analytics)</strong> — set only after you explicitly accept analytics cookies. These cookies help us understand how people use the site.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">9. Changes to This Policy</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed text-sm">
+          We may update this Privacy Policy from time to time. Material changes will be noted by
+          updating the "Last updated" date above.
+        </p>
+      </section>
+
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

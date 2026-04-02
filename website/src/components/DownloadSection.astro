@@ -1,0 +1,27 @@
+---
+import DownloadButtons from './react/DownloadButtons';
+---
+
+<section id="download" class="py-20 bg-[var(--surface-panel)]">
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+      Download ClipJot
+    </h2>
+    <p class="mt-4 text-lg text-[var(--muted-foreground)]">
+      Free forever. No account required. Just download and start editing.
+    </p>
+
+    <div class="mt-10">
+      <DownloadButtons client:load />
+    </div>
+
+    <!-- Mobile note -->
+    <p class="mt-3 text-xs text-[var(--muted-foreground)] sm:hidden">
+      Desktop app — download on a Mac or Windows PC
+    </p>
+
+    <p class="mt-8 text-sm text-[var(--muted-foreground)]">
+      Requires macOS 12+ or Windows 10+
+    </p>
+  </div>
+</section>

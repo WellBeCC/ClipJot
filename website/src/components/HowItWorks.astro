@@ -1,0 +1,59 @@
+---
+const steps = [
+  {
+    number: '1',
+    title: 'Paste',
+    description: 'Copy any image to your clipboard — a screenshot, a photo, anything. ClipJot picks it up instantly.',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>`,
+  },
+  {
+    number: '2',
+    title: 'Annotate',
+    description: 'Add arrows, text, shapes, or blur sensitive areas. Everything is on layers — move, resize, or delete any element.',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+  },
+  {
+    number: '3',
+    title: 'Copy back',
+    description: 'Press ⌘C (or Ctrl+C) to copy the annotated image back to your clipboard. Paste it anywhere — Slack, Notion, email.',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  },
+];
+---
+
+<section id="how-it-works" class="py-20 bg-[var(--surface-panel)]">
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+        How it works
+      </h2>
+      <p class="mt-4 text-lg text-[var(--muted-foreground)]">
+        Three steps. Under five seconds.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 sm:grid-cols-3">
+      {steps.map((step, i) => (
+        <div class="relative flex flex-col items-center text-center">
+          <!-- Connector line between steps (not on last) -->
+          {i < steps.length - 1 && (
+            <div class="hidden sm:block absolute top-8 left-[calc(50%+2.5rem)] right-[calc(-50%+2.5rem)] h-px bg-[var(--border-default)]" />
+          )}
+
+          <!-- Icon circle -->
+          <div class="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--background)] border-2 border-[var(--accent)] text-[var(--accent)]">
+            <Fragment set:html={step.icon} />
+          </div>
+
+          <!-- Step number badge -->
+          <div class="mt-4 mb-2 inline-flex items-center rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-xs font-semibold text-[var(--flexoki-blue-700)]">
+            Step {step.number}
+          </div>
+
+          <h3 class="text-lg font-semibold text-[var(--foreground)]">{step.title}</h3>
+          <p class="mt-2 text-sm text-[var(--muted-foreground)] leading-relaxed">{step.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
