@@ -4,7 +4,6 @@ import type {
   Annotation,
   ArrowAnnotation,
   LineAnnotation,
-  CalloutAnnotation,
 } from "../types/annotations"
 
 const props = defineProps<{
@@ -176,7 +175,6 @@ function commitDrag(): void {
 
 // ── Move (bounding box drag) ────────────────────────────────────────────────
 
-let moveStartScreen = { x: 0, y: 0 }
 let moveStartSvg = { x: 0, y: 0 }
 let moveOrigAnnotation: Record<string, number> = {}
 
@@ -188,7 +186,6 @@ function onBoundsPointerDown(e: PointerEvent): void {
   captureCTM(e.currentTarget as SVGElement)
   captureSnapshot()
 
-  moveStartScreen = { x: e.clientX, y: e.clientY }
   moveStartSvg = screenToSvg(e.clientX, e.clientY)
 
   // Capture original positions for all relevant fields

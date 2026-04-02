@@ -165,7 +165,7 @@ const {
   getRedactSettings,
   getCropSettings,
 } = useToolStore()
-const { select, deselect } = useSelection()
+const { deselect } = useSelection()
 
 const cropAspectRatio = computed<AspectRatioPreset>(() => {
   void settingsVersion.value
@@ -434,7 +434,7 @@ function onOverlayPointerMove(e: PointerEvent): void {
 /** Minimum dimension (px) for a shape/line to be committed */
 const MIN_DRAG_SIZE = 5
 
-function onOverlayPointerUp(e: PointerEvent): void {
+function onOverlayPointerUp(_e: PointerEvent): void {
   if (!dragState) return
 
   const tab = activeTab.value
