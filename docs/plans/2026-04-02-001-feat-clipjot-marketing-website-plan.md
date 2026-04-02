@@ -1,7 +1,7 @@
 ---
 title: "feat: ClipJot marketing website"
 type: feat
-status: active
+status: completed
 date: 2026-04-02
 origin: docs/brainstorms/2026-04-01-clipjot-marketing-website-requirements.md
 ---

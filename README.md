@@ -53,6 +53,8 @@ bun run dev
 bun run tauri build
 ```
 
+Tauri Builder for Windows: https://hub.docker.com/r/websmurf/tauri-builder
+
 This produces a native app bundle in `src-tauri/target/release/bundle/`.
 
 ## Testing
