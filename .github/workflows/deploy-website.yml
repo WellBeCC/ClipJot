@@ -30,7 +30,6 @@ jobs:
           package-manager: bun
         env:
           PUBLIC_GA_ID: ${{ secrets.PUBLIC_GA_ID }}
-          PUBLIC_SUBSCRIBE_WORKER_URL: ${{ secrets.SUBSCRIBE_WORKER_URL }}
 
   deploy:
     needs: build
