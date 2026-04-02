@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const lastUpdated = '2 April 2026';
+
+const processors = [
+  {
+    name: 'EmailOctopus',
+    purpose: 'Email subscription list management — stores email addresses of subscribers and sends update notifications.',
+    country: 'United States',
+    dpa: 'https://emailoctopus.com/legal/gdpr',
+    category: 'Email service provider',
+  },
+  {
+    name: 'Google Analytics 4',
+    purpose: 'Web analytics — collects anonymised usage data (pages visited, traffic sources, session duration) when users accept analytics cookies.',
+    country: 'United States (data may be processed in the EU)',
+    dpa: 'https://business.safety.google/adsprocessorterms/',
+    category: 'Analytics',
+  },
+  {
+    name: 'Cloudflare',
+    purpose: 'Subscription proxy service — a serverless worker that proxies subscription API requests from the browser to EmailOctopus. Does not store personal data.',
+    country: 'United States',
+    dpa: 'https://www.cloudflare.com/cloudflare-customer-dpa/',
+    category: 'Infrastructure / CDN',
+  },
+  {
+    name: 'GitHub (GitHub Pages)',
+    purpose: 'Website hosting — serves all website files. GitHub may log server-level access logs (IP address, user agent) as part of normal hosting operations.',
+    country: 'United States',
+    dpa: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+    category: 'Hosting',
+  },
+];
+---
+
+<BaseLayout
+  title="Data Processing – ClipJot"
+  description="List of third-party data processors used by the ClipJot website."
+>
+  <Header />
+  <main class="mx-auto max-w-3xl px-4 sm:px-6 py-16">
+    <h1 class="text-3xl font-bold tracking-tight text-[var(--foreground)] mb-2">
+      Data Processing Entities
+    </h1>
+    <p class="text-sm text-[var(--muted-foreground)] mb-4">Last updated: {lastUpdated}</p>
+    <p class="text-[var(--muted-foreground)] leading-relaxed mb-10">
+      This page lists the third-party services that process personal data on behalf of the ClipJot
+      website. Each service is named, along with its purpose, the country where data may be processed,
+      and a link to its Data Processing Agreement or privacy documentation.
+    </p>
+
+    <div class="space-y-4">
+      {processors.map((p) => (
+        <div class="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+          <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+            <div>
+              <h2 class="text-base font-semibold text-[var(--foreground)]">{p.name}</h2>
+              <span class="inline-block mt-1 rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs text-[var(--flexoki-blue-700)]">
+                {p.category}
+              </span>
+            </div>
+            <a
+              href={p.dpa}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-xs text-[var(--accent)] hover:underline"
+            >
+              DPA / Privacy ↗
+            </a>
+          </div>
+          <dl class="space-y-2 text-sm">
+            <div class="flex flex-col sm:flex-row sm:gap-4">
+              <dt class="text-[var(--muted-foreground)] shrink-0 w-28">Purpose</dt>
+              <dd class="text-[var(--foreground)] leading-relaxed">{p.purpose}</dd>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:gap-4">
+              <dt class="text-[var(--muted-foreground)] shrink-0 w-28">Country</dt>
+              <dd class="text-[var(--foreground)]">{p.country}</dd>
+            </div>
+          </dl>
+        </div>
+      ))}
+    </div>
+
+    <p class="mt-10 text-sm text-[var(--muted-foreground)]">
+      Questions? Open an issue on{' '}
+      <a
+        href="https://github.com/Lumeer/ClipJot"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="underline text-[var(--foreground)]"
+      >
+        GitHub
+      </a>.
+    </p>
+  </main>
+  <Footer />
+</BaseLayout>

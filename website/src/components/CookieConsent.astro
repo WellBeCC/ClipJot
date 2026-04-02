@@ -1,0 +1,135 @@
+---
+import 'vanilla-cookieconsent/dist/cookieconsent.css';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<style is:global>
+  /* Override cookieconsent theme to use Flexoki colors */
+  :root {
+    --cc-bg: var(--flexoki-paper);
+    --cc-primary-color: var(--flexoki-950);
+    --cc-secondary-color: var(--flexoki-600);
+    --cc-btn-primary-bg: var(--flexoki-blue-600);
+    --cc-btn-primary-color: var(--flexoki-paper);
+    --cc-btn-primary-hover-bg: var(--flexoki-blue-700);
+    --cc-btn-secondary-bg: var(--flexoki-100);
+    --cc-btn-secondary-color: var(--flexoki-950);
+    --cc-btn-secondary-hover-bg: var(--flexoki-200);
+    --cc-separator-border-color: var(--flexoki-200);
+    --cc-cookie-category-block-bg: var(--flexoki-50);
+    --cc-cookie-category-block-border: var(--flexoki-200);
+    --cc-toggle-on-bg: var(--flexoki-blue-600);
+    --cc-toggle-off-bg: var(--flexoki-300);
+    --cc-toggle-readonly-bg: var(--flexoki-200);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --cc-bg: var(--flexoki-900);
+      --cc-primary-color: var(--flexoki-100);
+      --cc-secondary-color: var(--flexoki-400);
+      --cc-btn-primary-bg: var(--flexoki-blue-400);
+      --cc-btn-primary-color: var(--flexoki-950);
+      --cc-btn-primary-hover-bg: var(--flexoki-blue-300);
+      --cc-btn-secondary-bg: var(--flexoki-800);
+      --cc-btn-secondary-color: var(--flexoki-100);
+      --cc-btn-secondary-hover-bg: var(--flexoki-700);
+      --cc-separator-border-color: var(--flexoki-800);
+      --cc-cookie-category-block-bg: var(--flexoki-950);
+      --cc-cookie-category-block-border: var(--flexoki-800);
+    }
+  }
+</style>
+
+<script define:vars={{ base }}>
+  import * as CookieConsent from 'vanilla-cookieconsent';
+
+  const gaIdMeta = document.querySelector('meta[name="ga-id"]');
+  const GA_ID = gaIdMeta ? gaIdMeta.getAttribute('content') : null;
+
+  function loadGA() {
+    if (!GA_ID) return;
+    CookieConsent.loadScript(
+      `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
+    ).then(() => {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        window.dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', GA_ID, { anonymize_ip: true });
+    });
+  }
+
+  CookieConsent.run({
+    categories: {
+      necessary: {
+        enabled: true,
+        readOnly: true,
+      },
+      analytics: {
+        autoClear: {
+          cookies: [{ name: /^_ga/ }, { name: '_gid' }],
+          reloadPage: false,
+        },
+      },
+    },
+
+    onConsent() {
+      if (CookieConsent.acceptedCategory('analytics')) loadGA();
+    },
+
+    onFirstConsent() {
+      if (CookieConsent.acceptedCategory('analytics')) loadGA();
+    },
+
+    onChange({ changedCategories }) {
+      if (changedCategories.includes('analytics')) {
+        if (CookieConsent.acceptedCategory('analytics')) {
+          loadGA();
+        }
+        // autoClear config removes GA cookies on revoke
+      }
+    },
+
+    language: {
+      default: 'en',
+      translations: {
+        en: {
+          consentModal: {
+            title: 'We use cookies',
+            description: `We use essential cookies to keep the site running, and analytics cookies (Google Analytics) to understand how people find ClipJot. <a href="${base}privacy">Privacy Policy</a>`,
+            acceptAllBtn: 'Accept all',
+            acceptNecessaryBtn: 'Reject all',
+            showPreferencesBtn: 'Manage preferences',
+          },
+          preferencesModal: {
+            title: 'Cookie preferences',
+            acceptAllBtn: 'Accept all',
+            acceptNecessaryBtn: 'Reject all',
+            savePreferencesBtn: 'Save',
+            closeIconLabel: 'Close',
+            sections: [
+              {
+                title: 'Strictly necessary',
+                description: 'Required for the site to function correctly. Cannot be disabled.',
+                linkedCategory: 'necessary',
+              },
+              {
+                title: 'Analytics (Google Analytics)',
+                description:
+                  'Helps us understand traffic sources and popular pages. All data is anonymised (IP anonymisation enabled).',
+                linkedCategory: 'analytics',
+              },
+              {
+                title: 'More information',
+                description: `For questions about how we use cookies, see our <a href="${base}privacy">Privacy Policy</a> and <a href="${base}data-processing">Data Processing</a> page.`,
+              },
+            ],
+          },
+        },
+      },
+    },
+  });
+</script>

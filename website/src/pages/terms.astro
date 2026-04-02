@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+const lastUpdated = '2 April 2026';
+---
+
+<BaseLayout
+  title="Terms and Conditions – ClipJot"
+  description="Terms and Conditions for ClipJot, the free clipboard image editor for macOS and Windows."
+>
+  <Header />
+  <main class="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+    <h1 class="text-3xl font-bold tracking-tight text-[var(--foreground)] mb-2">
+      Terms and Conditions
+    </h1>
+    <p class="text-sm text-[var(--muted-foreground)] mb-10">Last updated: {lastUpdated}</p>
+
+    <div class="prose prose-neutral max-w-none space-y-8 text-[var(--foreground)]">
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          By downloading, installing, or using ClipJot ("the Application"), you agree to be bound by
+          these Terms and Conditions. If you do not agree, do not use the Application.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">2. Permitted Use</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          ClipJot is provided free of charge for personal and professional use. You may use the
+          Application to edit, annotate, and copy images from your clipboard. You may not reverse
+          engineer, decompile, sell, or redistribute the Application without prior written permission.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">3. Intellectual Property</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          The Application, including its source code, design, and assets, is the intellectual property
+          of the ClipJot developers. The Flexoki color scheme is used under its open license and
+          credited to Steph Ango.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">4. Disclaimer of Warranties</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          The Application is provided <strong>"as is"</strong> without warranty of any kind, express or
+          implied, including but not limited to warranties of merchantability, fitness for a particular
+          purpose, or non-infringement. We do not warrant that the Application will be error-free or
+          uninterrupted.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">5. Limitation of Liability</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          To the maximum extent permitted by applicable law, the ClipJot developers shall not be liable
+          for any indirect, incidental, special, consequential, or punitive damages arising from your
+          use of or inability to use the Application.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">6. Email Subscription</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          If you subscribe to ClipJot product updates, you agree to receive occasional emails about new
+          features and releases. You may unsubscribe at any time using the unsubscribe link in any
+          email we send. See our{' '}
+          <a href={`${base}privacy`} class="underline text-[var(--foreground)] hover:text-[var(--accent)]">
+            Privacy Policy
+          </a>{' '}
+          for details on how we handle your data.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">7. Changes to These Terms</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          We may update these Terms from time to time. Continued use of the Application after changes
+          are posted constitutes your acceptance of the updated Terms.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">8. Governing Law</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          These Terms are governed by the laws of the Czech Republic, without regard to its conflict of
+          law provisions.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold mb-3">9. Contact</h2>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          For questions about these Terms, please open an issue on the{' '}
+          <a
+            href="https://github.com/Lumeer/ClipJot"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline text-[var(--foreground)] hover:text-[var(--accent)]"
+          >
+            ClipJot GitHub repository
+          </a>.
+        </p>
+      </section>
+
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

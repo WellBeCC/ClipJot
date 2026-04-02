@@ -1,0 +1,54 @@
+/* ClipJot website semantic design tokens */
+:root {
+  /* ── Surfaces ── */
+  --surface-app: var(--flexoki-paper);
+  --surface-panel: var(--flexoki-100);
+  --surface-elevated: var(--flexoki-50);
+
+  /* ── Text ── */
+  --text-primary: var(--flexoki-950);
+  --text-secondary: var(--flexoki-600);
+  --text-disabled: var(--flexoki-300);
+  --text-inverse: var(--flexoki-50);
+
+  /* ── Borders ── */
+  --border-subtle: var(--flexoki-200);
+  --border-default: var(--flexoki-300);
+  --border-strong: var(--flexoki-400);
+
+  /* ── Interactive ── */
+  --interactive-default: var(--flexoki-blue-600);
+  --interactive-hover: var(--flexoki-blue-700);
+  --interactive-active: var(--flexoki-blue-800);
+  --interactive-disabled: var(--flexoki-300);
+
+  /* ── Feedback ── */
+  --feedback-success: var(--flexoki-green-500);
+  --feedback-error: var(--flexoki-red-500);
+}
+
+/* ── Dark theme (media query based for website) ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-app: var(--flexoki-950);
+    --surface-panel: var(--flexoki-900);
+    --surface-elevated: var(--flexoki-800);
+
+    --text-primary: var(--flexoki-100);
+    --text-secondary: var(--flexoki-400);
+    --text-disabled: var(--flexoki-700);
+    --text-inverse: var(--flexoki-950);
+
+    --border-subtle: var(--flexoki-800);
+    --border-default: var(--flexoki-700);
+    --border-strong: var(--flexoki-600);
+
+    --interactive-default: var(--flexoki-blue-400);
+    --interactive-hover: var(--flexoki-blue-300);
+    --interactive-active: var(--flexoki-blue-200);
+    --interactive-disabled: var(--flexoki-700);
+
+    --feedback-success: var(--flexoki-green-400);
+    --feedback-error: var(--flexoki-red-400);
+  }
+}
