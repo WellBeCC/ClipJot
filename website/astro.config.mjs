@@ -5,8 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://lumeer.github.io/ClipJot/',
-  base: '/ClipJot/',
+  site: 'https://clipjot.app',
   output: 'static',
   integrations: [react()],
   vite: {
