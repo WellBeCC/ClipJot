@@ -43,9 +43,11 @@ let strokeCompositeOp: GlobalCompositeOperation = "source-over"
 const { activeTool, getToolSettings } = useToolStore()
 const { activeTab, promoteClipboardTab } = useTabStore()
 
-/** Only capture pointer events when a freehand tool is active */
+/** Only capture pointer events when a freehand tool is active and an image is loaded */
 const pointerEventsStyle = computed(() =>
-  isFreehandTool(activeTool.value) ? "auto" : "none",
+  isFreehandTool(activeTool.value) && activeTab.value?.imageUrl != null
+    ? "auto"
+    : "none",
 )
 
 function ensureSnapshotCanvas(w: number, h: number): void {

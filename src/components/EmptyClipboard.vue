@@ -1,5 +1,23 @@
 <script setup lang="ts">
 // Empty clipboard placeholder — shown when no image is available
+import { computed } from "vue"
+import { RefreshCw } from "lucide-vue-next"
+import { useSettings } from "../composables/useSettings"
+
+const { hotkey } = useSettings()
+
+const isMac = navigator.userAgent.includes("Mac")
+
+/** Convert Tauri shortcut format (e.g. "CommandOrControl+Shift+J") to a human-readable label. */
+const displayShortcut = computed(() => {
+  let s = hotkey.value
+  if (isMac) {
+    s = s.replace("CommandOrControl", "Cmd").replace("Meta", "Cmd")
+  } else {
+    s = s.replace("CommandOrControl", "Ctrl").replace("Meta", "Win")
+  }
+  return s
+})
 </script>
 
 <template>
@@ -23,7 +41,11 @@
     <h2 class="empty-clipboard__title">No image in clipboard</h2>
     <p class="empty-clipboard__hint">
       Copy an image to your clipboard, then press
-      <kbd>Cmd+Shift+J</kbd> to open it here
+      <kbd>{{ displayShortcut }}</kbd> or click
+      <span class="toolbar-btn-preview" aria-label="Refresh clipboard button">
+        <RefreshCw :size="12" stroke-width="2" />
+      </span>
+      in the toolbar to open it here.
     </p>
   </div>
 </template>
@@ -68,5 +90,18 @@ kbd {
   border: 1px solid var(--border-default);
   border-radius: 4px;
   box-shadow: var(--shadow-sm);
+}
+
+.toolbar-btn-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 5px;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  box-shadow: var(--shadow-sm);
+  vertical-align: middle;
+  color: var(--text-secondary);
 }
 </style>
