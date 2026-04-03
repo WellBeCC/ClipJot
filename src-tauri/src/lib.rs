@@ -1,7 +1,30 @@
 use std::path::PathBuf;
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{MenuBuilder, MenuItem, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
+
+struct DynamicMenuItems {
+    undo: MenuItem<tauri::Wry>,
+    redo: MenuItem<tauri::Wry>,
+    delete: MenuItem<tauri::Wry>,
+    close_tab: MenuItem<tauri::Wry>,
+}
+
+#[tauri::command]
+fn set_menu_item_enabled(
+    state: tauri::State<'_, DynamicMenuItems>,
+    id: String,
+    enabled: bool,
+) -> Result<(), String> {
+    let result = match id.as_str() {
+        "undo" => state.undo.set_enabled(enabled),
+        "redo" => state.redo.set_enabled(enabled),
+        "delete" => state.delete.set_enabled(enabled),
+        "close-tab" => state.close_tab.set_enabled(enabled),
+        _ => return Ok(()),
+    };
+    result.map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 async fn write_file(path: String, data: Vec<u8>) -> Result<(), String> {
@@ -25,7 +48,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![write_file])
+        .invoke_handler(tauri::generate_handler![write_file, set_menu_item_enabled])
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -37,6 +60,7 @@ pub fn run() {
                     .build(app)?;
                 let close_tab_item = MenuItemBuilder::with_id("close-tab", "Close Tab")
                     .accelerator("CmdOrCtrl+W")
+                    .enabled(false)
                     .build(app)?;
                 let settings_item = MenuItemBuilder::with_id("settings", "Settings…")
                     .accelerator("CmdOrCtrl+,")
@@ -56,14 +80,18 @@ pub fn run() {
                 // Edit menu
                 let undo_item = MenuItemBuilder::with_id("undo", "Undo")
                     .accelerator("CmdOrCtrl+Z")
+                    .enabled(false)
                     .build(app)?;
                 let redo_item = MenuItemBuilder::with_id("redo", "Redo")
                     .accelerator("CmdOrCtrl+Shift+Z")
+                    .enabled(false)
                     .build(app)?;
                 let copy_item = MenuItemBuilder::with_id("copy", "Copy")
                     .accelerator("CmdOrCtrl+C")
                     .build(app)?;
                 let delete_item = MenuItemBuilder::with_id("delete", "Delete")
+                    .accelerator("Delete")
+                    .enabled(false)
                     .build(app)?;
                 let edit_menu = SubmenuBuilder::new(app, "Edit")
                     .item(&undo_item)
@@ -84,31 +112,52 @@ pub fn run() {
                     MenuItemBuilder::with_id("fit-to-window", "Fit to Window")
                         .accelerator("CmdOrCtrl+0")
                         .build(app)?;
-                let toggle_theme_item =
-                    MenuItemBuilder::with_id("toggle-theme", "Toggle Theme")
-                        .build(app)?;
                 let view_menu = SubmenuBuilder::new(app, "View")
                     .item(&zoom_in_item)
                     .item(&zoom_out_item)
                     .item(&fit_to_window_item)
-                    .separator()
-                    .item(&toggle_theme_item)
                     .build()?;
 
                 // Tools menu
-                let tool_select = MenuItemBuilder::with_id("select", "Select").build(app)?;
-                let tool_pen = MenuItemBuilder::with_id("pen", "Pen").build(app)?;
-                let tool_pencil = MenuItemBuilder::with_id("pencil", "Pencil").build(app)?;
-                let tool_marker = MenuItemBuilder::with_id("marker", "Marker").build(app)?;
-                let tool_eraser = MenuItemBuilder::with_id("eraser", "Eraser").build(app)?;
-                let tool_arrow = MenuItemBuilder::with_id("arrow", "Arrow").build(app)?;
-                let tool_line = MenuItemBuilder::with_id("line", "Line").build(app)?;
-                let tool_rect = MenuItemBuilder::with_id("rect", "Rectangle").build(app)?;
-                let tool_ellipse = MenuItemBuilder::with_id("ellipse", "Ellipse").build(app)?;
-                let tool_callout = MenuItemBuilder::with_id("callout", "Callout").build(app)?;
-                let tool_text = MenuItemBuilder::with_id("text", "Text").build(app)?;
-                let tool_redact = MenuItemBuilder::with_id("redact", "Redaction").build(app)?;
-                let tool_crop = MenuItemBuilder::with_id("crop", "Crop").build(app)?;
+                let tool_select = MenuItemBuilder::with_id("select", "Select")
+                    .accelerator("S")
+                    .build(app)?;
+                let tool_pen = MenuItemBuilder::with_id("pen", "Pen")
+                    .accelerator("P")
+                    .build(app)?;
+                let tool_pencil = MenuItemBuilder::with_id("pencil", "Pencil")
+                    .accelerator("I")
+                    .build(app)?;
+                let tool_marker = MenuItemBuilder::with_id("marker", "Marker")
+                    .accelerator("M")
+                    .build(app)?;
+                let tool_eraser = MenuItemBuilder::with_id("eraser", "Eraser")
+                    .accelerator("E")
+                    .build(app)?;
+                let tool_arrow = MenuItemBuilder::with_id("arrow", "Arrow")
+                    .accelerator("A")
+                    .build(app)?;
+                let tool_line = MenuItemBuilder::with_id("line", "Line")
+                    .accelerator("L")
+                    .build(app)?;
+                let tool_rect = MenuItemBuilder::with_id("rect", "Rectangle")
+                    .accelerator("R")
+                    .build(app)?;
+                let tool_ellipse = MenuItemBuilder::with_id("ellipse", "Ellipse")
+                    .accelerator("C")
+                    .build(app)?;
+                let tool_callout = MenuItemBuilder::with_id("callout", "Callout")
+                    .accelerator("O")
+                    .build(app)?;
+                let tool_text = MenuItemBuilder::with_id("text", "Text")
+                    .accelerator("T")
+                    .build(app)?;
+                let tool_redact = MenuItemBuilder::with_id("redact", "Redaction")
+                    .accelerator("D")
+                    .build(app)?;
+                let tool_crop = MenuItemBuilder::with_id("crop", "Crop")
+                    .accelerator("X")
+                    .build(app)?;
                 let tools_menu = SubmenuBuilder::new(app, "Tools")
                     .item(&tool_select)
                     .separator()
@@ -132,6 +181,12 @@ pub fn run() {
                     .items(&[&file_menu, &edit_menu, &view_menu, &tools_menu])
                     .build()?;
                 app.set_menu(menu)?;
+                app.manage(DynamicMenuItems {
+                    undo: undo_item,
+                    redo: redo_item,
+                    delete: delete_item,
+                    close_tab: close_tab_item,
+                });
 
                 // Forward menu events to the frontend
                 app.on_menu_event(move |app_handle, event| {
@@ -156,8 +211,40 @@ pub fn run() {
                     .items(&[&show, &tray_quit])
                     .build()?;
 
+                let is_dark = {
+                    #[cfg(target_os = "macos")]
+                    {
+                        std::process::Command::new("defaults")
+                            .args(["read", "-g", "AppleInterfaceStyle"])
+                            .output()
+                            .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "Dark")
+                            .unwrap_or(false)
+                    }
+                    #[cfg(target_os = "windows")]
+                    {
+                        use winreg::enums::HKEY_CURRENT_USER;
+                        use winreg::RegKey;
+                        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+                        hkcu.open_subkey(
+                            "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                        )
+                        .and_then(|key| key.get_value::<u32, _>("AppsUseLightTheme"))
+                        .map(|v: u32| v == 0)
+                        .unwrap_or(false)
+                    }
+                    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+                    {
+                        false
+                    }
+                };
+                let tray_icon = if is_dark {
+                    tauri::include_image!("icons/tray-icon-light@2x.png")
+                } else {
+                    tauri::include_image!("icons/tray-icon@2x.png")
+                };
+
                 TrayIconBuilder::new()
-                    .icon(tauri::include_image!("icons/tray-icon@2x.png"))
+                    .icon(tray_icon)
                     .tooltip("ClipJot")
                     .menu(&tray_menu)
                     .show_menu_on_left_click(false)

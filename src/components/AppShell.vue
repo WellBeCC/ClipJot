@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import TabBar from "./TabBar.vue";
 import Toolbar from "./Toolbar.vue";
 import SubToolbar from "./SubToolbar.vue";
@@ -10,6 +11,8 @@ import { useToast } from "../composables/useToast";
 import { readClipboardImage } from "../composables/useClipboard";
 import { copyTabToClipboard, saveTabToFile } from "../composables/useExport";
 import { useMenuEvents } from "../composables/useMenuEvents";
+import { useSelection } from "../composables/useSelection";
+import { useAnnotationStore } from "../composables/useAnnotationStore";
 
 const {
   activeTab,
@@ -18,13 +21,25 @@ const {
   updateClipboardImage,
   markTabCopied,
   duplicateActiveTab,
+  requestCloseTab,
 } = useTabStore();
 const { success, error } = useToast();
+const { hasSelection, selectedIds, deselect } = useSelection();
 
 const showSettings = ref(false);
 
 const canUndo = computed(() => activeTab.value?.undoRedo.canUndo.value ?? false);
 const canRedo = computed(() => activeTab.value?.undoRedo.canRedo.value ?? false);
+const isClipboardActive = computed(() => activeTab.value?.type === "clipboard");
+
+function setMenuItemEnabled(id: string, enabled: boolean): void {
+  void invoke("set_menu_item_enabled", { id, enabled });
+}
+
+watch(canUndo, (val) => setMenuItemEnabled("undo", val), { immediate: true });
+watch(canRedo, (val) => setMenuItemEnabled("redo", val), { immediate: true });
+watch(hasSelection, (val) => setMenuItemEnabled("delete", val), { immediate: true });
+watch(isClipboardActive, (val) => setMenuItemEnabled("close-tab", !val), { immediate: true });
 
 function toggleSettings(): void {
   showSettings.value = !showSettings.value;
@@ -46,8 +61,8 @@ onMounted(async () => {
     onRedo: handleRedo,
     onCopy: handleCopy,
     onSave: handleSave,
-    onDelete: () => {},
-    onCloseTab: () => {},
+    onDelete: handleDelete,
+    onCloseTab: handleCloseTab,
     onZoomIn: () => {},
     onZoomOut: () => {},
     onFitToWindow: () => {},
@@ -101,6 +116,22 @@ function handleUndo(): void {
 
 function handleRedo(): void {
   activeTab.value?.undoRedo.redo();
+}
+
+function handleDelete(): void {
+  const tab = activeTab.value;
+  if (!tab || selectedIds.value.size === 0) return;
+  const store = useAnnotationStore(tab.annotationState);
+  for (const id of selectedIds.value) {
+    store.removeAnnotation(id);
+  }
+  deselect();
+}
+
+async function handleCloseTab(): Promise<void> {
+  const tab = activeTab.value;
+  if (!tab || tab.type === "clipboard") return;
+  await requestCloseTab(tab.id);
 }
 
 async function handleRefresh(): Promise<void> {

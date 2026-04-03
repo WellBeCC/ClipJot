@@ -7,6 +7,7 @@ import type { ToolId } from "../types/tools"
  */
 export const TOOL_KEY_MAP: Record<string, ToolId> = {
   s: "select",
+  p: "pen",
   i: "pencil",
   m: "marker",
   e: "eraser",
@@ -17,7 +18,7 @@ export const TOOL_KEY_MAP: Record<string, ToolId> = {
   o: "callout",
   t: "text",
   d: "redact",
-  p: "crop",
+  x: "crop",
 }
 
 /** Minimum interval between Cmd+C executions (milliseconds). */
