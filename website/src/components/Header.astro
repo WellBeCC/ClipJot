@@ -1,4 +1,9 @@
 ---
+interface Props {
+  showDownload?: boolean;
+}
+
+const { showDownload = true } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
@@ -15,12 +20,14 @@ const base = import.meta.env.BASE_URL;
         <a href={`${base}#features`} class="hover:text-[var(--foreground)] transition-colors">Features</a>
       </nav>
 
-      <a
-        href={`${base}#download`}
-        class="inline-flex h-9 items-center justify-center rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--flexoki-blue-700)] transition-colors"
-      >
-        Download
-      </a>
+      {showDownload && (
+        <a
+          href={`${base}#download`}
+          class="inline-flex h-9 items-center justify-center rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--flexoki-blue-700)] transition-colors"
+        >
+          Download
+        </a>
+      )}
     </div>
   </div>
 </header>

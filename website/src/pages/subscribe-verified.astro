@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title="You're Subscribed – ClipJot"
+  description="Your email has been confirmed. You're now subscribed to ClipJot updates."
+>
+  <Header showDownload={false} />
+  <main>
+    <section class="py-24 text-center">
+      <div class="mx-auto max-w-xl px-4 sm:px-6">
+        <div class="mb-6 flex justify-center">
+          <span class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-panel)] text-4xl">
+            🎉
+          </span>
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+          You're all set!
+        </h1>
+        <p class="mt-4 text-lg text-[var(--muted-foreground)]">
+          Thanks for confirming your subscription. We'll let you know whenever there's something new with ClipJot.
+        </p>
+        <p class="mt-6 text-sm text-[var(--muted-foreground)]">
+          Redirecting to the homepage in <span id="countdown" class="font-semibold text-[var(--foreground)]">10</span>…
+        </p>
+        <a
+          href={base}
+          class="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-[var(--primary)] px-6 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--flexoki-blue-700)] transition-colors"
+        >
+          Go now
+        </a>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<script define:vars={{ base }}>
+  const el = document.getElementById('countdown');
+  let seconds = 10;
+  const tick = setInterval(() => {
+    seconds -= 1;
+    if (el) el.textContent = String(seconds);
+    if (seconds <= 0) {
+      clearInterval(tick);
+      window.location.href = base;
+    }
+  }, 1000);
+</script>
