@@ -10,7 +10,7 @@ origin: docs/brainstorms/2026-04-01-clipjot-marketing-website-requirements.md
 
 ## Overview
 
-Build and deploy a focused marketing website for ClipJot — a static Astro site hosted on GitHub Pages at `https://lumeer.github.io/ClipJot/`. The site offers frictionless direct downloads, an optional post-download subscription dialog, a bottom-of-page subscribe form, Google Analytics with GDPR-compliant cookie consent, and three legal pages (Terms, Privacy, Data Processing). All interactive components are React islands within an otherwise fully static Astro build.
+Build and deploy a focused marketing website for ClipJot — a static Astro site hosted on GitHub Pages at `https://wellbecc.github.io/ClipJot/`. The site offers frictionless direct downloads, an optional post-download subscription dialog, a bottom-of-page subscribe form, Google Analytics with GDPR-compliant cookie consent, and three legal pages (Terms, Privacy, Data Processing). All interactive components are React islands within an otherwise fully static Astro build.
 
 ## Problem Statement
 
@@ -44,7 +44,7 @@ Google Analytics is gated behind `vanilla-cookieconsent` — the GA script is in
 | Cookie consent | `vanilla-cookieconsent` v3.1.0 | MIT, Astro `<script>` integration |
 | Analytics | Google Analytics 4 | Consent-gated via cookieconsent callbacks |
 | Email subscriptions | EmailOctopus (free) | Via Cloudflare Worker CORS proxy |
-| Hosting | GitHub Pages | `https://lumeer.github.io/ClipJot/` |
+| Hosting | GitHub Pages | `https://wellbecc.github.io/ClipJot/` |
 | Deployment | GitHub Actions | `withastro/action@v5` + `actions/deploy-pages@v4` |
 | Package manager | Bun (required by CLAUDE.md) | All commands use `bun` / `bunx` |
 
@@ -108,7 +108,7 @@ import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://lumeer.github.io',
+  site: 'https://wellbecc.github.io',
   base: '/ClipJot',
   output: 'static',
   integrations: [react()],
@@ -214,13 +214,13 @@ Download URLs are hardcoded in a config file. When a new release is cut, update 
 export const DOWNLOADS = {
   macos: {
     label: 'Download for macOS (Universal)',
-    url: 'https://github.com/Lumeer/ClipJot/releases/latest/download/ClipJot_universal.dmg',
-    fallbackUrl: 'https://github.com/Lumeer/ClipJot/releases/latest',
+    url: 'https://github.com/WellBeCC/ClipJot/releases/latest/download/ClipJot_universal.dmg',
+    fallbackUrl: 'https://github.com/WellBeCC/ClipJot/releases/latest',
   },
   windows: {
     label: 'Download for Windows',
-    url: 'https://github.com/Lumeer/ClipJot/releases/latest/download/ClipJot_x64-setup.exe',
-    fallbackUrl: 'https://github.com/Lumeer/ClipJot/releases/latest',
+    url: 'https://github.com/WellBeCC/ClipJot/releases/latest/download/ClipJot_x64-setup.exe',
+    fallbackUrl: 'https://github.com/WellBeCC/ClipJot/releases/latest',
   },
 } as const;
 
@@ -264,7 +264,7 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: {
-          'Access-Control-Allow-Origin': 'https://lumeer.github.io',
+          'Access-Control-Allow-Origin': 'https://wellbecc.github.io',
           'Access-Control-Allow-Methods': 'POST',
           'Access-Control-Allow-Headers': 'Content-Type',
         },
@@ -291,7 +291,7 @@ export default {
     );
 
     const corsHeaders = {
-      'Access-Control-Allow-Origin': 'https://lumeer.github.io',
+      'Access-Control-Allow-Origin': 'https://wellbecc.github.io',
     };
 
     // Treat duplicate email (409) as success — don't leak subscription status
@@ -570,7 +570,7 @@ The workflow triggers only when files under `website/` change, preventing unnece
 - [ ] Add GitHub repository secrets: `PUBLIC_GA_ID`, `SUBSCRIBE_WORKER_URL`
 - [ ] Set GitHub Pages source to **GitHub Actions** in repo settings
 - [ ] Test deployment on push to `main`
-- [ ] Verify `https://lumeer.github.io/ClipJot/` serves correct content
+- [ ] Verify `https://wellbecc.github.io/ClipJot/` serves correct content
 - [ ] Verify all internal links work with `/ClipJot/` base path
 
 ### Phase 7: QA + SEO Verification
@@ -642,7 +642,7 @@ The workflow triggers only when files under `website/` change, preventing unnece
 | Open Graph image | Soft dependency | 1200×630px image needed for social previews. Placeholder acceptable at launch. |
 | Legal content review | Risk | AI-drafted legal content must be reviewed before launch. Incorrect legal pages create GDPR/liability risk. |
 | GitHub Pages setup | Configuration | Must set source to "GitHub Actions" in repo settings before first deploy |
-| Cloudflare Worker CORS restriction | Architecture | Worker origin-checks `lumeer.github.io` — if domain changes, update the Worker |
+| Cloudflare Worker CORS restriction | Architecture | Worker origin-checks `wellbecc.github.io` — if domain changes, update the Worker |
 | GitHub Releases URL stability | Risk | `/releases/latest/download/<asset-name>` is stable only if asset names stay consistent across releases. Document this in the release checklist. |
 
 ## Sources & References

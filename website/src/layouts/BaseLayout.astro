@@ -80,5 +80,19 @@ const jsonLd = {
   <body>
     <slot />
     <CookieConsent />
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('anim-go');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      );
+      document.querySelectorAll('[data-anim]').forEach((el) => observer.observe(el));
+    </script>
   </body>
 </html>

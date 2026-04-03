@@ -4,14 +4,14 @@ import DownloadButtons from './react/DownloadButtons';
 
 <section id="download" class="py-20 bg-[var(--surface-panel)]">
   <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
-    <h2 class="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+    <h2 data-anim="fade-up" class="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
       Download ClipJot
     </h2>
-    <p class="mt-4 text-lg text-[var(--muted-foreground)]">
+    <p data-anim="fade-up" data-anim-delay="1" class="mt-4 text-lg text-[var(--muted-foreground)]">
       Free forever. No account required. Just download and start editing.
     </p>
 
-    <div class="mt-10">
+    <div data-anim="fade-up" data-anim-delay="2" class="mt-10">
       <DownloadButtons client:load />
     </div>
 
