@@ -641,11 +641,41 @@ let resizeObserver: ResizeObserver | null = null
 /** Whether the initial fit-to-window has been performed */
 let initialFitDone = false
 
+/** Reactive viewport dimensions (updated by ResizeObserver) */
+const viewportWidth = ref(0)
+const viewportHeight = ref(0)
+
+/** The scale that fitToWindow would produce at current viewport dimensions */
+const fitScale = computed(() => {
+  if (viewportWidth.value === 0 || viewportHeight.value === 0) return 1
+  if (imageWidth.value === 0 || imageHeight.value === 0) return 1
+  return Math.min(
+    viewportWidth.value / imageWidth.value,
+    viewportHeight.value / imageHeight.value,
+    1,
+  )
+})
+
+/** Whether the current zoom already matches the fit-to-window zoom */
+const isFitToWindow = computed(() => viewport.scale.value === fitScale.value)
+
 function callFitToWindow(): void {
   const el = viewportRef.value
   if (!el || el.clientWidth === 0 || el.clientHeight === 0) return
   viewport.fitToWindow(el.clientWidth, el.clientHeight)
 }
+
+const ZOOM_STEP = 1.25
+
+function zoomIn(): void {
+  viewport.setZoom(viewport.scale.value * ZOOM_STEP)
+}
+
+function zoomOut(): void {
+  viewport.setZoom(viewport.scale.value / ZOOM_STEP)
+}
+
+defineExpose({ zoomIn, zoomOut, fitToWindow: callFitToWindow, isFitToWindow })
 
 onMounted(() => {
   const el = viewportRef.value
@@ -654,6 +684,10 @@ onMounted(() => {
   // Only auto-fit on the initial layout; ignore subsequent resizes (e.g.
   // sub-toolbar appearing/disappearing) to avoid resetting user zoom.
   resizeObserver = new ResizeObserver(() => {
+    if (viewportRef.value) {
+      viewportWidth.value = viewportRef.value.clientWidth
+      viewportHeight.value = viewportRef.value.clientHeight
+    }
     if (!initialFitDone) {
       initialFitDone = true
       callFitToWindow()
@@ -661,6 +695,8 @@ onMounted(() => {
   })
   resizeObserver.observe(el)
 
+  viewportWidth.value = el.clientWidth
+  viewportHeight.value = el.clientHeight
   callFitToWindow()
   initialFitDone = true
 })

@@ -27,6 +27,7 @@ const { success, error } = useToast();
 const { hasSelection, selectedIds, deselect } = useSelection();
 
 const showSettings = ref(false);
+const canvasViewportRef = ref<InstanceType<typeof CanvasViewport> | null>(null);
 
 const canUndo = computed(() => activeTab.value?.undoRedo.canUndo.value ?? false);
 const canRedo = computed(() => activeTab.value?.undoRedo.canRedo.value ?? false);
@@ -40,6 +41,11 @@ watch(canUndo, (val) => setMenuItemEnabled("undo", val), { immediate: true });
 watch(canRedo, (val) => setMenuItemEnabled("redo", val), { immediate: true });
 watch(hasSelection, (val) => setMenuItemEnabled("delete", val), { immediate: true });
 watch(isClipboardActive, (val) => setMenuItemEnabled("close-tab", !val), { immediate: true });
+watch(
+  () => canvasViewportRef.value?.isFitToWindow,
+  (isFit) => setMenuItemEnabled("fit-to-window", !isFit),
+  { immediate: true },
+);
 
 function toggleSettings(): void {
   showSettings.value = !showSettings.value;
@@ -63,9 +69,9 @@ onMounted(async () => {
     onSave: handleSave,
     onDelete: handleDelete,
     onCloseTab: handleCloseTab,
-    onZoomIn: () => {},
-    onZoomOut: () => {},
-    onFitToWindow: () => {},
+    onZoomIn: () => canvasViewportRef.value?.zoomIn(),
+    onZoomOut: () => canvasViewportRef.value?.zoomOut(),
+    onFitToWindow: () => canvasViewportRef.value?.fitToWindow(),
     onSettings: toggleSettings,
   });
 });
@@ -171,7 +177,7 @@ function handleDuplicate(): void {
       @settings="toggleSettings"
     />
     <SubToolbar />
-    <CanvasViewport />
+    <CanvasViewport ref="canvasViewportRef" />
     <SettingsDialog v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>

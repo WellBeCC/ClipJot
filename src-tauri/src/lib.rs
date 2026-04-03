@@ -8,6 +8,7 @@ struct DynamicMenuItems {
     redo: MenuItem<tauri::Wry>,
     delete: MenuItem<tauri::Wry>,
     close_tab: MenuItem<tauri::Wry>,
+    fit_to_window: MenuItem<tauri::Wry>,
 }
 
 #[tauri::command]
@@ -21,6 +22,7 @@ fn set_menu_item_enabled(
         "redo" => state.redo.set_enabled(enabled),
         "delete" => state.delete.set_enabled(enabled),
         "close-tab" => state.close_tab.set_enabled(enabled),
+        "fit-to-window" => state.fit_to_window.set_enabled(enabled),
         _ => return Ok(()),
     };
     result.map_err(|e| e.to_string())
@@ -186,6 +188,7 @@ pub fn run() {
                     redo: redo_item,
                     delete: delete_item,
                     close_tab: close_tab_item,
+                    fit_to_window: fit_to_window_item,
                 });
 
                 // Forward menu events to the frontend
