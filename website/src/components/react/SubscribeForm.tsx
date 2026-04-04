@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { subscribeEmail } from '@/lib/subscribe';
+import SubscribeConfirmedContent from './SubscribeConfirmedContent';
 
 type FormState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -44,31 +45,8 @@ export default function SubscribeForm() {
 
   if (state === 'success') {
     return (
-      <div className="text-center py-4">
-        <div className="mb-3 flex justify-center">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-full"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--feedback-success) 15%, transparent)' }}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--feedback-success)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-        </div>
-        <p className="font-semibold text-[var(--foreground)]">You're subscribed!</p>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          We'll keep you posted on ClipJot updates.
-        </p>
+      <div className="mx-auto max-w-xl px-4 sm:px-6">
+        <SubscribeConfirmedContent />
       </div>
     );
   }

@@ -111,7 +111,7 @@ export function SubscribeDialog({ open, onClose }: SubscribeDialogProps) {
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="dialog-email">Email address</Label>
                 <Input
@@ -126,6 +126,7 @@ export function SubscribeDialog({ open, onClose }: SubscribeDialogProps) {
                   disabled={state === 'loading'}
                   autoComplete="email"
                   aria-describedby={emailError ? 'dialog-email-error' : undefined}
+                  className="mt-2"
                 />
                 {emailError && (
                   <p id="dialog-email-error" className="text-xs text-[var(--destructive)]">
