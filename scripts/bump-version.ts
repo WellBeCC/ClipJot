@@ -46,12 +46,13 @@ console.log("\nCommitting...");
 run(`git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml`);
 run(`git commit -m Bump version to ${version}`);
 
-const tag = `v${version}`;
+/*const tag = `v${version}`;
 console.log(`Tagging ${tag}...`);
 run(`git tag ${tag}`);
 
 console.log("Pushing...");
 run(`git push`);
 run(`git push origin ${tag}`);
+*/
 
 console.log(`\nDone! GitHub Actions will build and draft release ${tag}.`);
