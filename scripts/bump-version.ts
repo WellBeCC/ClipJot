@@ -44,7 +44,7 @@ console.log(`✓ src-tauri/Cargo.toml → ${version}`);
 // Commit, tag, push
 console.log("\nCommitting...");
 run(`git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml`);
-run(`git commit -m Bump version to ${version}`);
+run(`git commit -m "Bump version to ${version}"`);
 
 /*const tag = `v${version}`;
 console.log(`Tagging ${tag}...`);
