@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "subscribe.ts": {
+      "runtime": "@vercel/node"
+    }
+  }
+}
