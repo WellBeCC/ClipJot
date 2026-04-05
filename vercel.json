@@ -1,7 +1,7 @@
 {
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "https://clipjot.app" },
         { "key": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
