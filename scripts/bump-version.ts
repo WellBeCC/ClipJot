@@ -15,9 +15,27 @@ if (!/^\d+\.\d+\.\d+$/.test(version)) {
 
 const root = import.meta.dir + "/..";
 
-function run(cmd: string) {
-  const result = Bun.spawnSync(cmd.split(" "), { cwd: root, stdout: "inherit", stderr: "inherit" });
+function run(args: string[]) {
+  const result = Bun.spawnSync(args, { cwd: root, stdout: "inherit", stderr: "inherit" });
   if (result.exitCode !== 0) process.exit(result.exitCode ?? 1);
+}
+
+function capture(args: string[]): string {
+  const result = Bun.spawnSync(args, { cwd: root, stdout: "pipe", stderr: "pipe" });
+  return result.stdout.toString().trim();
+}
+
+// Verify we're on a clean develop branch
+const currentBranch = capture(["git", "rev-parse", "--abbrev-ref", "HEAD"]);
+if (currentBranch !== "develop") {
+  console.error(`Must be on 'develop' branch (currently on '${currentBranch}')`);
+  process.exit(1);
+}
+
+const gitStatus = capture(["git", "status", "--porcelain"]);
+if (gitStatus !== "") {
+  console.error("Working tree is not clean. Commit or stash your changes first.");
+  process.exit(1);
 }
 
 // package.json
@@ -41,18 +59,29 @@ const updatedCargo = cargo.replace(/^(version\s*=\s*")[^"]+(")/m, `$1${version}$
 await Bun.write(cargoPath, updatedCargo);
 console.log(`✓ src-tauri/Cargo.toml → ${version}`);
 
-// Commit, tag, push
+// Commit and push develop
 console.log("\nCommitting...");
-run(`git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml`);
-run(`git commit -m "Bump version to ${version}"`);
+run(["git", "add", "package.json", "src-tauri/tauri.conf.json", "src-tauri/Cargo.toml"]);
+run(["git", "commit", "-m", `"Bump version to ${version}"`]);
 
-/*const tag = `v${version}`;
-console.log(`Tagging ${tag}...`);
-run(`git tag ${tag}`);
+console.log("\nPushing develop...");
+run(["git", "push", "origin", "develop"]);
+run(["git", "push", "upstream", "develop"]);
 
-console.log("Pushing...");
-run(`git push`);
-run(`git push origin ${tag}`);
-*/
+// Merge develop into main
+console.log("\nSwitching to main...");
+run(["git", "checkout", "main"]);
+run(["git", "pull", "--ff-only", "origin", "main"]);
+run(["git", "merge", "--ff-only", "origin/develop"]);
 
-console.log(`\nDone! GitHub Actions will build and draft release ${tag}.`);
+console.log("\nPushing main...");
+run(["git", "push", "origin", "main"]);
+run(["git", "push", "upstream", "main"]);
+
+// Tag and push to upstream
+const tag = `v${version}`;
+console.log(`\nTagging ${tag}...`);
+run(["git", "tag", tag]);
+run(["git", "push", "upstream", tag]);
+
+console.log(`\nDone! Version ${version} released.`);
