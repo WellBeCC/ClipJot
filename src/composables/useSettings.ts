@@ -43,8 +43,8 @@ watch(tabNamePattern, (v) => saveToStorage("tabNamePattern", v))
 watch(hotkey, (v) => saveToStorage("hotkey", v))
 watch(zoomSensitivity, (v) => saveToStorage("zoomSensitivity", v))
 watch(autostart, (v) => saveToStorage("autostart", v))
-watch(showInTray, (v) => saveToStorage("showInTray", v))
 watch(showInTray, (v) => {
+  saveToStorage("showInTray", v)
   invoke("set_tray_mode", { enabled: v }).catch(() => {
     // not in Tauri context
   })

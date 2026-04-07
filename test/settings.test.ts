@@ -89,7 +89,7 @@ describe("useSettings composable", () => {
   })
 
   test("persists showInTray to localStorage on change", () => {
-    expect(settings).toContain('watch(showInTray, (v) => saveToStorage("showInTray", v))')
+    expect(settings).toContain('saveToStorage("showInTray", v)')
   })
 
   test("exports setShowInTray setter", () => {
