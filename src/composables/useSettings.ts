@@ -1,4 +1,5 @@
 import { ref, watch } from "vue"
+import { invoke } from "@tauri-apps/api/core"
 
 export type ThemeSetting = "light" | "dark" | "system"
 
@@ -33,6 +34,7 @@ const zoomSensitivity = ref<number>(
   loadFromStorage<number>("zoomSensitivity", 3),
 )
 const autostart = ref<boolean>(loadFromStorage<boolean>("autostart", false))
+const showInTray = ref<boolean>(loadFromStorage<boolean>("showInTray", true))
 
 // Persist each setting on change
 watch(theme, (v) => saveToStorage("theme", v))
@@ -41,6 +43,12 @@ watch(tabNamePattern, (v) => saveToStorage("tabNamePattern", v))
 watch(hotkey, (v) => saveToStorage("hotkey", v))
 watch(zoomSensitivity, (v) => saveToStorage("zoomSensitivity", v))
 watch(autostart, (v) => saveToStorage("autostart", v))
+watch(showInTray, (v) => saveToStorage("showInTray", v))
+watch(showInTray, (v) => {
+  invoke("set_tray_mode", { enabled: v }).catch(() => {
+    // not in Tauri context
+  })
+})
 
 /** Resolve effective theme (accounting for "system" preference). */
 function resolveTheme(setting: ThemeSetting): "light" | "dark" {
@@ -104,6 +112,10 @@ function setAutostart(value: boolean): void {
   autostart.value = value
 }
 
+function setShowInTray(value: boolean): void {
+  showInTray.value = value
+}
+
 export function useSettings() {
   return {
     // Reactive state
@@ -113,6 +125,7 @@ export function useSettings() {
     hotkey,
     zoomSensitivity,
     autostart,
+    showInTray,
 
     // Update functions
     setTheme,
@@ -121,6 +134,7 @@ export function useSettings() {
     setHotkey,
     setZoomSensitivity,
     setAutostart,
+    setShowInTray,
 
     // Utilities
     applyTheme,

@@ -84,6 +84,23 @@ describe("useSettings composable", () => {
 
   // --- Update functions ---
 
+  test("has showInTray setting with true default", () => {
+    expect(settings).toContain('loadFromStorage<boolean>("showInTray", true)')
+  })
+
+  test("persists showInTray to localStorage on change", () => {
+    expect(settings).toContain('watch(showInTray, (v) => saveToStorage("showInTray", v))')
+  })
+
+  test("exports setShowInTray setter", () => {
+    expect(settings).toContain("function setShowInTray")
+  })
+
+  test("invokes set_tray_mode command when showInTray changes", () => {
+    expect(settings).toContain('"set_tray_mode"')
+    expect(settings).toContain("showInTray")
+  })
+
   test("exports setter functions for all settings", () => {
     expect(settings).toContain("function setTheme")
     expect(settings).toContain("function setAutoCopyOnClose")
