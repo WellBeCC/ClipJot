@@ -14,7 +14,9 @@ import { useMenuEvents } from "../composables/useMenuEvents";
 import { useCopyStats } from "../composables/useCopyStats";
 import { useSelection } from "../composables/useSelection";
 import { useAnnotationStore } from "../composables/useAnnotationStore";
+import { useSettings } from "../composables/useSettings";
 
+const { showInTray } = useSettings();
 const {
   activeTab,
   clipboardTab,
@@ -63,6 +65,7 @@ function handleOpenSettings(): void {
 }
 
 onMounted(async () => {
+  void invoke("set_tray_mode", { enabled: showInTray.value });
   window.addEventListener("open-settings", handleOpenSettings);
   unlistenMenu = await useMenuEvents({
     onUndo: handleUndo,
