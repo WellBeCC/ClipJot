@@ -1,6 +1,7 @@
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use tauri::menu::{MenuBuilder, MenuItem, MenuItemBuilder, SubmenuBuilder};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 
 struct DynamicMenuItems {
@@ -9,6 +10,11 @@ struct DynamicMenuItems {
     delete: MenuItem<tauri::Wry>,
     close_tab: MenuItem<tauri::Wry>,
     fit_to_window: MenuItem<tauri::Wry>,
+}
+
+struct AppState {
+    show_in_tray: Arc<Mutex<bool>>,
+    tray: Arc<Mutex<Option<TrayIcon<tauri::Wry>>>>,
 }
 
 #[tauri::command]
@@ -42,6 +48,27 @@ async fn write_file(path: String, data: Vec<u8>) -> Result<(), String> {
         .map_err(|e| format!("Failed to write file: {}", e))
 }
 
+#[tauri::command]
+fn set_tray_mode(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> Result<(), String> {
+    *state.show_in_tray.lock().unwrap() = enabled;
+
+    if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+        tray.set_visible(enabled).map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    if !enabled {
+        // Tray turned off: restore Regular policy so dock icon stays visible.
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -66,7 +93,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![write_file, set_menu_item_enabled])
+        .invoke_handler(tauri::generate_handler![write_file, set_menu_item_enabled, set_tray_mode])
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -206,6 +233,10 @@ pub fn run() {
                     close_tab: close_tab_item,
                     fit_to_window: fit_to_window_item,
                 });
+                app.manage(AppState {
+                    show_in_tray: Arc::new(Mutex::new(true)),
+                    tray: Arc::new(Mutex::new(None)),
+                });
 
                 // Forward menu events to the frontend
                 app.on_menu_event(move |app_handle, event| {
@@ -262,7 +293,7 @@ pub fn run() {
                     tauri::include_image!("icons/tray-icon@2x.png")
                 };
 
-                TrayIconBuilder::new()
+                let built_tray = TrayIconBuilder::new()
                     .icon(tray_icon)
                     .tooltip("ClipJot")
                     .menu(&tray_menu)
@@ -296,6 +327,8 @@ pub fn run() {
                         }
                     })
                     .build(app)?;
+
+                *app.state::<AppState>().tray.lock().unwrap() = Some(built_tray);
             }
 
             Ok(())
