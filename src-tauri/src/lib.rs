@@ -335,10 +335,22 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Window close → hide to tray instead of quitting
             if let WindowEvent::CloseRequested { api, .. } = event {
                 let _ = window.hide();
                 api.prevent_close();
+
+                #[cfg(target_os = "macos")]
+                {
+                    let show_in_tray = window
+                        .try_state::<AppState>()
+                        .map(|s| *s.show_in_tray.lock().unwrap_or_else(|e| e.into_inner()))
+                        .unwrap_or(true);
+                    if show_in_tray {
+                        let _ = window
+                            .app_handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                    }
+                }
             }
         })
         .build(tauri::generate_context!())
