@@ -301,6 +301,10 @@ pub fn run() {
                     .show_menu_on_left_click(false)
                     .on_menu_event(move |app, event| match event.id().as_ref() {
                         "show" => {
+                            #[cfg(target_os = "macos")]
+                            {
+                                let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                            }
                             if let Some(window) = app.get_webview_window("main") {
                                 let _ = window.show();
                                 let _ = window.unminimize();
@@ -320,6 +324,10 @@ pub fn run() {
                         } = event
                         {
                             let app = tray.app_handle();
+                            #[cfg(target_os = "macos")]
+                            {
+                                let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                            }
                             if let Some(window) = app.get_webview_window("main") {
                                 let _ = window.show();
                                 let _ = window.unminimize();
