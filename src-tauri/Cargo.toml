@@ -1,6 +1,6 @@
 [package]
 name = "ClipJot"
-version = "1.0.9"
+version = "1.1.0"
 description = "A desktop clipboard image editor"
 authors = ["Martin Večeřa <info@clipjot.app>"]
 license = "GPL-3.0-only"
