@@ -1,0 +1,5 @@
+# Search engines and AI assistants are welcome to crawl and cite clipjot.app.
+User-agent: *
+Allow: /
+
+Sitemap: https://clipjot.app/sitemap.xml

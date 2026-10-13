@@ -1,43 +1,21 @@
-# Astro Starter Kit: Minimal
+# ClipJot website
+
+Source of [clipjot.app](https://clipjot.app), built with Astro, React islands and Tailwind.
 
 ```sh
-bun create astro@latest -- --template minimal
+bun install
+bun run dev      # http://localhost:4321
+bun run build    # static output in dist/
+bun run tsc      # type check
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Pushing changes under `website/` to `main` deploys to GitHub Pages (`.github/workflows/deploy-website.yml`).
 
-## 🚀 Project Structure
+## SEO and AI discoverability
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `bun install`             | Installs dependencies                            |
-| `bun dev`             | Starts local dev server at `localhost:4321`      |
-| `bun build`           | Build your production site to `./dist/`          |
-| `bun preview`         | Preview your build locally, before deploying     |
-| `bun astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `bun astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- Product facts (description, features, FAQ, version) live in `src/lib/site.ts`. The page, the JSON-LD
+  (`SoftwareApplication`, `Organization`, `FAQPage`) and `/llms.txt` are all generated from it, so edit them there.
+- The app version is read from the root `package.json` at build time.
+- `/sitemap.xml` lists the indexable pages (`src/pages/sitemap.xml.ts`); add new public pages there.
+- Pages that should stay out of search results pass `noindex` to `BaseLayout`.
+- `public/og-image.png` (1200×630) is the social preview; `public/app-screenshot.{png,webp}` is the hero image.

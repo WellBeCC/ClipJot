@@ -7,15 +7,18 @@ import Features from '../components/Features.astro';
 import DownloadSection from '../components/DownloadSection.astro';
 import SubscribeSection from '../components/SubscribeSection.astro';
 import BackersSection from '../components/BackersSection.astro';
+import FaqSection from '../components/FaqSection.astro';
 import Footer from '../components/Footer.astro';
+import { faqJsonLd, softwareJsonLd } from '../lib/site';
 ---
 
-<BaseLayout>
+<BaseLayout jsonLd={[softwareJsonLd(), faqJsonLd]}>
   <Header />
   <main>
     <Hero />
     <HowItWorks />
     <Features />
+    <FaqSection />
     <DownloadSection />
     <SubscribeSection />
     <BackersSection />

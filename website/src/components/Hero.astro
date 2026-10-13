@@ -38,14 +38,19 @@ import DownloadButtons from './react/DownloadButtons';
 
     <!-- App screenshot -->
     <div data-anim="pop-in" data-anim-delay="4" class="mt-16 mx-auto max-w-5xl">
-      <img
-        src={`${import.meta.env.BASE_URL}app-screenshot.png`}
-        alt="ClipJot app — annotating a screenshot with arrows and text"
-        class="w-full"
-        width="1200"
-        height="750"
-        loading="eager"
-      />
+      <picture>
+        <source srcset={`${import.meta.env.BASE_URL}app-screenshot.webp`} type="image/webp" />
+        <img
+          src={`${import.meta.env.BASE_URL}app-screenshot.png`}
+          alt="ClipJot window editing a pasted screenshot: the API key and email are pixelated, an overdue invoice is boxed in orange, numbered callouts mark two buttons and a red arrow labelled “Export first!” points to Export CSV"
+          class="w-full h-auto"
+          width="2208"
+          height="1545"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
     </div>
   </div>
 </section>

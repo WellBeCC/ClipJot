@@ -1,0 +1,23 @@
+---
+import { FAQ } from '../lib/site';
+---
+
+<section id="faq" class="py-20 bg-[var(--background)]">
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <h2 data-anim="fade-up" class="text-center text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+      Frequently asked questions
+    </h2>
+
+    <div class="mt-12 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+      {FAQ.map(({ q, a }) => (
+        <details class="group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
+            <h3>{q}</h3>
+            <svg class="size-5 shrink-0 text-[var(--muted-foreground)] transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">{a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>

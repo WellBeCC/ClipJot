@@ -2,17 +2,21 @@
 
 A lightweight desktop app for editing images directly from the clipboard. Paste an image, annotate it, and copy it back — all without leaving your workflow.
 
+**Website & downloads: [clipjot.app](https://clipjot.app)** · free for macOS and Windows
+
+[![ClipJot editing a screenshot: pixelated API key and email, a highlighted invoice row, numbered callouts and an arrow](website/public/app-screenshot.png)](https://clipjot.app)
+
 ## Features
 
 - Paste images from clipboard and edit them instantly
-- Annotations: arrows, lines, rectangles, ellipses, callouts, text
-- Freehand drawing
-- Redaction tools
+- Annotations: arrows, lines, rectangles, ellipses, numbered callouts, text
+- Freehand drawing: pen, pencil, marker, eraser
+- Redaction: solid, pixelate, blur
 - Crop with aspect ratio presets
 - Undo/redo
 - Multiple tabs
-- Copy edited image back to clipboard
-- Global keyboard shortcut to open/focus the app
+- Copy edited image back to clipboard, or save to file
+- Global keyboard shortcut to open/focus the app (⌘⇧J / Ctrl+Shift+J)
 
 ## Tech Stack
 
@@ -95,5 +99,6 @@ ClipJot/
 │   ├── icons/              # App icons
 │   └── tauri.conf.json     # Tauri configuration
 ├── test/                   # Unit tests
+├── website/                # clipjot.app (Astro), deployed to GitHub Pages from main
 └── docs/                   # Project documentation and plans
 ```
