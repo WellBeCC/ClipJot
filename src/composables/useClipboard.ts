@@ -45,10 +45,10 @@ export async function readClipboardImage(): Promise<ClipboardImage | null> {
  * Write image data to the clipboard.
  * Accepts raw RGBA Uint8Array with dimensions.
  *
- * Uses the app's own `write_clipboard_image` command instead of the plugin's
- * writeImage: on macOS the plugin only puts TIFF on the clipboard, while the
- * command adds PNG (preferred by messaging apps, and much smaller).
- * The pixels are sent as the raw IPC body; dimensions go in headers.
+ * Goes through the app's `write_clipboard_image` command, which calls the
+ * clipboard plugin from Rust. The pixels are sent as the raw IPC body
+ * (dimensions in headers) instead of the JSON payload `Image.new` uses,
+ * which is slow for large images.
  */
 export async function writeClipboardImage(
   rgba: Uint8Array,

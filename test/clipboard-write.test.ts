@@ -2,9 +2,8 @@ import { describe, test, expect } from "bun:test"
 import { readFileSync } from "fs"
 import { resolve } from "path"
 
-// On macOS the clipboard plugin (arboard) only puts TIFF on the clipboard.
-// Clipboard writes go through the app's own write_clipboard_image command,
-// which adds PNG on macOS and uses the plugin elsewhere.
+// Clipboard writes go through the app's own write_clipboard_image command so
+// RGBA pixels travel as a raw IPC body; Rust then calls the clipboard plugin.
 
 const clipboardTs = readFileSync(
   resolve(__dirname, "../src/composables/useClipboard.ts"),
@@ -43,20 +42,10 @@ describe("Clipboard image write", () => {
     expect(libRs).toContain("clipboard::write_clipboard_image")
   })
 
-  test("macOS writes PNG + TIFF bytes directly to the pasteboard", () => {
-    expect(clipboardRs).toContain('#[cfg(target_os = "macos")]')
-    expect(clipboardRs).toContain("NSBitmapImageFileType::PNG")
-    expect(clipboardRs).toContain(".TIFFRepresentation()")
-    expect(clipboardRs).toContain("&[png_type, tiff_type]")
-    expect(clipboardRs).toContain("setData_forType(Some(&png), png_type)")
-    expect(clipboardRs).toContain("setData_forType(Some(&tiff), tiff_type)")
-    // Canvas getImageData yields straight alpha
-    expect(clipboardRs).toContain("NSBitmapFormat::AlphaNonpremultiplied")
-  })
-
-  test("other platforms keep using the clipboard plugin", () => {
-    expect(clipboardRs).toContain('#[cfg(not(target_os = "macos"))]')
+  test("Rust side delegates to the clipboard plugin on every platform", () => {
     expect(clipboardRs).toContain("app.clipboard().write_image(&image)")
+    expect(clipboardRs).not.toContain("cfg(target_os")
+    expect(clipboardRs).not.toContain("unsafe")
   })
 
   test("rejects RGBA buffers that don't match the dimensions", () => {

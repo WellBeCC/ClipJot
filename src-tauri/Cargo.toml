@@ -30,23 +30,6 @@ tauri-plugin-dialog = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 
-[target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "0.6"
-objc2-app-kit = { version = "0.3", default-features = false, features = [
-    "std",
-    "NSBitmapImageRep",
-    "NSGraphics",
-    "NSImageRep",
-    "NSPasteboard",
-] }
-objc2-foundation = { version = "0.3", default-features = false, features = [
-    "std",
-    "NSArray",
-    "NSData",
-    "NSDictionary",
-    "NSString",
-] }
-
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.52"
 

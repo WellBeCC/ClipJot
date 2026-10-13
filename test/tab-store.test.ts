@@ -63,7 +63,7 @@ describe("Clipboard Composable", () => {
       "utf-8",
     )
     expect(content).toContain('invoke("write_clipboard_image"')
-    expect(content).not.toContain("Image.new")
+    expect(content).not.toContain("Image.new(")
   })
 
   test("useClipboard.ts uses image.size() for dimensions", () => {
