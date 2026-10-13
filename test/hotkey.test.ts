@@ -35,11 +35,24 @@ describe("Global Hotkey", () => {
     expect(hotkey).toContain("updateClipboardImage")
   })
 
-  test("activates the clipboard tab on hotkey, after refreshing it", () => {
-    const updateIdx = hotkey.indexOf("updateClipboardImage(null, 0, 0)")
-    const activateIdx = hotkey.indexOf("setActiveTab(clipboardTab.value.id)")
-    expect(updateIdx).toBeGreaterThan(-1)
-    expect(activateIdx).toBeGreaterThan(updateIdx)
+  test("activates the clipboard tab only when an image was loaded", () => {
+    const imageBranch = hotkey.slice(
+      hotkey.indexOf("if (image) {"),
+      hotkey.indexOf("} else {"),
+    )
+    const elseBranch = hotkey.slice(
+      hotkey.indexOf("} else {"),
+      hotkey.indexOf("updateClipboardImage(null, 0, 0)") + 40,
+    )
+    const loadIdx = imageBranch.indexOf("updateClipboardImage(image.url")
+    const activateIdx = imageBranch.indexOf(
+      "setActiveTab(clipboardTab.value.id)",
+    )
+    expect(loadIdx).toBeGreaterThan(-1)
+    expect(activateIdx).toBeGreaterThan(loadIdx)
+    expect(elseBranch).not.toContain("setActiveTab")
+    // Activation happens nowhere else in the handler
+    expect(hotkey.match(/setActiveTab\(/g)).toHaveLength(1)
   })
 
   test("supports changing hotkey with fallback", () => {

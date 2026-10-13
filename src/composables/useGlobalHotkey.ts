@@ -30,14 +30,13 @@ export function useGlobalHotkey() {
         const image = await readClipboardImage()
         if (image) {
           updateClipboardImage(image.url, image.width, image.height)
+          // A fresh clipboard image was loaded, so switch to it even if
+          // another tab was last active. Without one, stay where we were.
+          if (clipboardTab.value) {
+            setActiveTab(clipboardTab.value.id)
+          }
         } else {
           updateClipboardImage(null, 0, 0)
-        }
-
-        // The hotkey means "edit what's on my clipboard now", so switch to
-        // the clipboard tab even if another tab was last active
-        if (clipboardTab.value) {
-          setActiveTab(clipboardTab.value.id)
         }
       })
       return true
