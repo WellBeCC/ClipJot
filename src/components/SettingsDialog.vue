@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue"
+import { onMounted, onUnmounted, ref } from "vue"
+import { getVersion } from "@tauri-apps/api/app"
 import { useSettings } from "../composables/useSettings"
 import type { ThemeSetting } from "../composables/useSettings"
 
@@ -38,6 +39,9 @@ function handleZoomSensitivity(event: Event): void {
   setZoomSensitivity(Number(target.value))
 }
 
+/** Version of the running app binary, filled in once the dialog mounts */
+const appVersion = ref<string | null>(null)
+
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === "Escape") {
     emit("close")
@@ -46,6 +50,13 @@ function onKeydown(event: KeyboardEvent): void {
 
 onMounted(() => {
   document.addEventListener("keydown", onKeydown)
+  getVersion()
+    .then((version) => {
+      appVersion.value = version
+    })
+    .catch((err: unknown) => {
+      console.warn("[ClipJot] Failed to read app version:", err)
+    })
 })
 
 onUnmounted(() => {
@@ -165,6 +176,10 @@ onUnmounted(() => {
             />
           </label>
         </section>
+
+        <footer v-if="appVersion" class="settings-dialog__footer">
+          ClipJot {{ appVersion }}
+        </footer>
       </div>
     </div>
   </Teleport>
@@ -230,8 +245,17 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.settings-section:last-child {
+.settings-section:last-of-type {
   border-bottom: none;
+}
+
+.settings-dialog__footer {
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  user-select: text;
 }
 
 .settings-section__heading {

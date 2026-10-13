@@ -135,6 +135,17 @@ describe("SettingsDialog component", () => {
     expect(dialog).toContain("useSettings")
   })
 
+  test("reads the running app version via Tauri getVersion", () => {
+    expect(dialog).toContain('import { getVersion } from "@tauri-apps/api/app"')
+    expect(dialog).toContain("getVersion()")
+  })
+
+  test("shows the app version in a footer at the bottom of the dialog", () => {
+    const footerIndex = dialog.indexOf('class="settings-dialog__footer"')
+    expect(footerIndex).toBeGreaterThan(dialog.lastIndexOf("</section>"))
+    expect(dialog).toContain("ClipJot {{ appVersion }}")
+  })
+
   test("teleports to body", () => {
     expect(dialog).toContain('<Teleport to="body">')
   })
