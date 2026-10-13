@@ -1,10 +1,10 @@
 //! Image clipboard writes.
 //!
-//! On macOS the clipboard-manager plugin (arboard) writes an `NSImage` object,
-//! whose TIFF data is provided lazily. Clipboard history apps such as Paste
-//! don't register that as a new clip, even though pasting works. We write
-//! PNG + TIFF bytes to the pasteboard directly instead. Other platforms keep
-//! using the plugin.
+//! On macOS the clipboard-manager plugin (arboard) writes an `NSImage`, which
+//! AppKit offers as TIFF only. Messaging apps and browsers prefer PNG, which is
+//! also far smaller, so on macOS we write PNG + TIFF bytes to the pasteboard
+//! directly. On Windows (PNG + CF_DIBV5) and Linux (image/png) arboard already
+//! writes PNG, so those platforms keep using the plugin.
 
 use tauri::ipc::{InvokeBody, Request};
 

@@ -2,9 +2,9 @@ import { describe, test, expect } from "bun:test"
 import { readFileSync } from "fs"
 import { resolve } from "path"
 
-// Regression: images copied from ClipJot didn't show up in clipboard history
-// apps (Paste) on macOS, because the plugin wrote a lazily provided NSImage.
-// Clipboard writes now go through the app's own write_clipboard_image command.
+// On macOS the clipboard plugin (arboard) only puts TIFF on the clipboard.
+// Clipboard writes go through the app's own write_clipboard_image command,
+// which adds PNG on macOS and uses the plugin elsewhere.
 
 const clipboardTs = readFileSync(
   resolve(__dirname, "../src/composables/useClipboard.ts"),

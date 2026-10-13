@@ -46,8 +46,8 @@ export async function readClipboardImage(): Promise<ClipboardImage | null> {
  * Accepts raw RGBA Uint8Array with dimensions.
  *
  * Uses the app's own `write_clipboard_image` command instead of the plugin's
- * writeImage: on macOS the plugin writes a lazily provided NSImage, which
- * clipboard history apps (e.g. Paste) don't register as a new clip.
+ * writeImage: on macOS the plugin only puts TIFF on the clipboard, while the
+ * command adds PNG (preferred by messaging apps, and much smaller).
  * The pixels are sent as the raw IPC body; dimensions go in headers.
  */
 export async function writeClipboardImage(
