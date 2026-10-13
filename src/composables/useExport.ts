@@ -69,8 +69,22 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   })
 }
 
+/** A region of a canvas, in canvas pixels. */
+interface CanvasRegion {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Composited layers plus the region to export (crop or full image). */
+interface FlattenedLayers {
+  canvas: HTMLCanvasElement
+  region: CanvasRegion
+}
+
 /**
- * Flatten a tab's layers into a single PNG blob.
+ * Composite a tab's layers onto a full-size canvas.
  *
  * Layer compositing order (Unit 23):
  *   1. Base image
@@ -82,12 +96,10 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
  * via serializeAnnotationsToSvg, which handles all annotation types including
  * text via foreignObject. No separate text rendering pass is needed.
  *
- * If crop bounds are set, the export canvas is sized to the crop region
- * and only that portion of the composited image is exported.
- *
- * PNG metadata stripping is a known limitation deferred to v2.
+ * The canvas is always uncropped; the returned region holds the crop bounds
+ * (or the full image) so each consumer extracts only what it needs.
  */
-export async function flattenTab(tab: Tab): Promise<ExportResult> {
+async function flattenLayers(tab: Tab): Promise<FlattenedLayers> {
   if (!tab.imageUrl) {
     throw new Error("No image to export")
   }
@@ -148,60 +160,82 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
     ctx.drawImage(svgImage, 0, 0, imgW, imgH)
   }
 
-  // ── Crop extraction ──
-  // If crop bounds are set, extract only the cropped region.
-  // Otherwise export the full canvas.
+  // ── Export region ──
+  // Crop bounds if set, otherwise the full canvas.
   const crop = tab.cropState.cropBounds.value
-  if (crop) {
-    const exportCanvas = createCanvas(crop.width, crop.height)
-    const exportCtx = exportCanvas.getContext("2d")!
-    exportCtx.drawImage(
-      canvas,
-      crop.x,
-      crop.y,
-      crop.width,
-      crop.height,
-      0,
-      0,
-      crop.width,
-      crop.height,
-    )
-    const blob = await canvasToBlob(exportCanvas)
-    return { blob, width: crop.width, height: crop.height }
+  const region = crop
+    ? { x: crop.x, y: crop.y, width: crop.width, height: crop.height }
+    : { x: 0, y: 0, width: imgW, height: imgH }
+  return { canvas, region }
+}
+
+/**
+ * Flatten a tab's layers into a single PNG blob.
+ *
+ * If crop bounds are set, the export canvas is sized to the crop region
+ * and only that portion of the composited image is exported.
+ *
+ * PNG metadata stripping is a known limitation deferred to v2.
+ */
+export async function flattenTab(tab: Tab): Promise<ExportResult> {
+  const { canvas, region } = await flattenLayers(tab)
+  const { width, height } = region
+
+  if (width === canvas.width && height === canvas.height) {
+    const blob = await canvasToBlob(canvas)
+    return { blob, width, height }
   }
 
-  const blob = await canvasToBlob(canvas)
-  return { blob, width: imgW, height: imgH }
+  // Crop via drawImage source-region extraction
+  const exportCanvas = createCanvas(width, height)
+  const exportCtx = exportCanvas.getContext("2d")!
+  exportCtx.drawImage(
+    canvas,
+    region.x,
+    region.y,
+    width,
+    height,
+    0,
+    0,
+    width,
+    height,
+  )
+  const blob = await canvasToBlob(exportCanvas)
+  return { blob, width, height }
 }
 
 /**
  * Copy the flattened image to the system clipboard.
  *
  * Follows atomic export pattern (Appendix A.5):
- *   1. Flatten to blob in memory — clipboard is UNTOUCHED
- *   2. Convert blob to RGBA for Tauri's clipboard API
+ *   1. Flatten layers in memory — clipboard is UNTOUCHED
+ *   2. Read RGBA pixels of the export region for Tauri's clipboard API
  *   3. Write to clipboard — only now do we modify the clipboard
+ *
+ * Pixels are read straight from the composited canvas. Going through a PNG
+ * blob (encode, then decode back to RGBA) costs two full-image codec passes
+ * for no benefit, since the clipboard API takes raw RGBA.
  *
  * If flatten fails (step 1), the clipboard is never cleared,
  * so the user never loses their current clipboard content.
  */
 export async function copyTabToClipboard(tab: Tab): Promise<void> {
-  // Step 1: Flatten to blob in memory (atomic — clipboard untouched)
-  const { blob } = await flattenTab(tab)
+  // Step 1: Flatten layers in memory (atomic — clipboard untouched)
+  const { canvas, region } = await flattenLayers(tab)
 
-  // Step 2: Convert PNG blob to RGBA for Tauri's clipboard API
-  const bitmap = await createImageBitmap(blob)
-  const canvas = createCanvas(bitmap.width, bitmap.height)
+  // Step 2: Read RGBA of the export region (crop applied here, no extra canvas)
   const ctx = canvas.getContext("2d")!
-  ctx.drawImage(bitmap, 0, 0)
-  bitmap.close()
-
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const imageData = ctx.getImageData(
+    region.x,
+    region.y,
+    region.width,
+    region.height,
+  )
   const rgba = new Uint8Array(imageData.data.buffer)
 
   // Step 3: Write to clipboard (only now do we touch the clipboard)
   const { writeClipboardImage } = await import("./useClipboard")
-  await writeClipboardImage(rgba, canvas.width, canvas.height)
+  await writeClipboardImage(rgba, region.width, region.height)
 }
 
 /**

@@ -482,8 +482,8 @@ describe("Export integration", () => {
   })
 
   test("redaction is applied after freehand strokes (covers drawings)", () => {
-    // Search within flattenTab body to avoid matching the import statement
-    const body = exportFile.slice(exportFile.indexOf("async function flattenTab"))
+    // Search within flattenLayers body to avoid matching the import statement
+    const body = exportFile.slice(exportFile.indexOf("async function flattenLayers"))
     const redactionIndex = body.indexOf("renderRedactionRegion")
     const freehandIndex = body.indexOf("redrawAll")
     expect(redactionIndex).toBeGreaterThan(-1)

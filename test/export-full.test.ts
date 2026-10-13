@@ -49,7 +49,7 @@ describe("Layer ordering", () => {
   test("text annotations are batched into SVG render pass (B.8)", () => {
     // Text should NOT have its own separate rendering loop in flattenTab
     const flattenBody = exportFile.slice(
-      exportFile.indexOf("async function flattenTab"),
+      exportFile.indexOf("async function flattenLayers"),
       exportFile.indexOf("export async function copyTabToClipboard"),
     )
 
@@ -77,12 +77,11 @@ describe("Crop application", () => {
   test("crop uses drawImage source-region extraction", () => {
     // Should use the 9-argument drawImage form for crop extraction
     const cropSection = exportFile.slice(
-      exportFile.indexOf("Crop extraction"),
+      exportFile.indexOf("Crop via drawImage source-region extraction"),
     )
-    expect(cropSection).toContain("crop.x")
-    expect(cropSection).toContain("crop.y")
-    expect(cropSection).toContain("crop.width")
-    expect(cropSection).toContain("crop.height")
+    expect(cropSection).toContain("region.x")
+    expect(cropSection).toContain("region.y")
+    expect(cropSection).toContain("width,\n    height,\n    0,\n    0,")
   })
 
   test("returns crop dimensions in ExportResult when crop is active", () => {
@@ -268,7 +267,7 @@ describe("Export atomicity", () => {
       exportFile.indexOf("async function copyTabToClipboard"),
       exportFile.indexOf("export async function saveTabToFile"),
     )
-    const flattenIdx = copyFn.indexOf("flattenTab(tab)")
+    const flattenIdx = copyFn.indexOf("flattenLayers(tab)")
     const writeIdx = copyFn.indexOf("writeClipboardImage")
     expect(flattenIdx).toBeGreaterThan(-1)
     expect(writeIdx).toBeGreaterThan(-1)
@@ -300,7 +299,7 @@ describe("Export atomicity", () => {
 describe("All layer types", () => {
   test("flattenTab handles all 5 layer types", () => {
     const flattenBody = exportFile.slice(
-      exportFile.indexOf("async function flattenTab"),
+      exportFile.indexOf("async function flattenLayers"),
       exportFile.indexOf("export async function copyTabToClipboard"),
     )
 
@@ -456,12 +455,11 @@ describe("Performance", () => {
 
   test("closes ImageBitmap after use to free memory", () => {
     expect(exportFile).toContain("img.close()")
-    expect(exportFile).toContain("bitmap.close()")
   })
 
   test("batches all annotations into single SVG render (B.8)", () => {
     const flattenBody = exportFile.slice(
-      exportFile.indexOf("async function flattenTab"),
+      exportFile.indexOf("async function flattenLayers"),
       exportFile.indexOf("export async function copyTabToClipboard"),
     )
 
@@ -512,6 +510,32 @@ describe("ExportResult", () => {
 describe("Error handling", () => {
   test("flattenTab throws on missing image", () => {
     expect(exportFile).toContain("No image to export")
+  })
+})
+
+// ── Copy fast path (no PNG round trip) ──
+
+describe("Copy reads pixels directly", () => {
+  const copyFn = exportFile.slice(
+    exportFile.indexOf("async function copyTabToClipboard"),
+    exportFile.indexOf("export async function saveTabToFile"),
+  )
+
+  test("copy does not encode or decode PNG", () => {
+    expect(copyFn).not.toContain("flattenTab(")
+    expect(copyFn).not.toContain("canvasToBlob(")
+    expect(copyFn).not.toContain("createImageBitmap(")
+  })
+
+  test("copy reads only the export (crop) region from the composited canvas", () => {
+    expect(copyFn).toContain("getImageData(\n    region.x,\n    region.y,")
+    expect(copyFn).toContain(
+      "writeClipboardImage(rgba, region.width, region.height)",
+    )
+  })
+
+  test("crop region falls back to the full image when no crop is set", () => {
+    expect(exportFile).toContain("{ x: 0, y: 0, width: imgW, height: imgH }")
   })
 })
 
