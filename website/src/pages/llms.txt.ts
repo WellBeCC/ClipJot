@@ -1,13 +1,13 @@
 import type { APIRoute } from 'astro';
 import { DOWNLOADS } from '../lib/download-config';
-import { APP_VERSION, DEFAULT_DESCRIPTION, FAQ, FEATURE_LIST, REPO_URL, SITE_URL } from '../lib/site';
+import { APP_VERSION, DEFAULT_DESCRIPTION, FAQ, FEATURE_LIST, LICENSE_URL, REPO_URL, SITE_URL } from '../lib/site';
 
 export const GET: APIRoute = () => {
   const body = `# ClipJot
 
 > ${DEFAULT_DESCRIPTION}
 
-ClipJot is a free desktop app for macOS 12+ and Windows 10+, made by WellBe s.r.o. (Brno, Czech Republic).${APP_VERSION ? ` The current version is ${APP_VERSION}.` : ''} It opens the image on your clipboard, lets you annotate it, and copies the result back, so there are no files to save or open. It works offline: images never leave the computer. No account, subscription or watermark.
+ClipJot is a free desktop app for macOS 12+ and Windows 10+, made by WellBe s.r.o. (Brno, Czech Republic).${APP_VERSION ? ` The current version is ${APP_VERSION}.` : ''} It opens the image on your clipboard, lets you annotate it, and copies the result back, so there are no files to save or open. It works offline: images never leave the computer. No account, subscription or watermark. ClipJot is open source under the GNU GPL v3.0.
 
 ## Features
 
@@ -27,6 +27,7 @@ ${FAQ.map(({ q, a }) => `### ${q}\n\n${a}`).join('\n\n')}
 
 - [Website](${SITE_URL}/)
 - [Source code on GitHub](${REPO_URL})
+- [License: GPL-3.0](${LICENSE_URL})
 - [Privacy policy](${SITE_URL}/privacy/)
 - [Terms and conditions](${SITE_URL}/terms/)
 `;

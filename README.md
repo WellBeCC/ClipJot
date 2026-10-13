@@ -2,7 +2,7 @@
 
 A lightweight desktop app for editing images directly from the clipboard. Paste an image, annotate it, and copy it back — all without leaving your workflow.
 
-**Website & downloads: [clipjot.app](https://clipjot.app)** · free for macOS and Windows
+**Website & downloads: [clipjot.app](https://clipjot.app)** · free and open source for macOS and Windows
 
 [![ClipJot editing a screenshot: pixelated API key and email, a highlighted invoice row, numbered callouts and an arrow](website/public/app-screenshot.png)](https://clipjot.app)
 
@@ -102,3 +102,7 @@ ClipJot/
 ├── website/                # clipjot.app (Astro), deployed to GitHub Pages from main
 └── docs/                   # Project documentation and plans
 ```
+
+## License
+
+ClipJot is free software, licensed under the [GNU General Public License v3.0](LICENSE).

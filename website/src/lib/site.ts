@@ -4,6 +4,7 @@ import { DOWNLOADS } from './download-config';
 
 export const SITE_URL = 'https://clipjot.app';
 export const REPO_URL = 'https://github.com/WellBeCC/ClipJot';
+export const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 
 /** App version, read at build time from the app's package.json (website/ is the build cwd). */
 export const APP_VERSION: string = (() => {
@@ -15,7 +16,7 @@ export const APP_VERSION: string = (() => {
 })();
 
 export const DEFAULT_DESCRIPTION =
-  'Paste any image from your clipboard, add arrows, text, shapes and numbered callouts, redact sensitive data, then copy it back in seconds. Free screenshot editor for macOS and Windows.';
+  'Paste any image from your clipboard, add arrows, text, shapes and numbered callouts, redact sensitive data, then copy it back in seconds. Free, open-source screenshot editor for macOS and Windows.';
 
 export const FEATURE_LIST = [
   'Paste images from the clipboard and edit them instantly',
@@ -35,11 +36,15 @@ export const FEATURE_LIST = [
 export const FAQ = [
   {
     q: 'What is ClipJot?',
-    a: 'ClipJot is a free desktop screenshot editor for macOS and Windows. It opens the image that is currently on your clipboard, lets you add arrows, text, shapes, numbered callouts and redactions, and copies the result back to the clipboard so you can paste it into Slack, email, Notion or a ticket.',
+    a: 'ClipJot is a free, open-source desktop screenshot editor for macOS and Windows. It opens the image that is currently on your clipboard, lets you add arrows, text, shapes, numbered callouts and redactions, and copies the result back to the clipboard so you can paste it into Slack, email, Notion or a ticket.',
   },
   {
     q: 'Is ClipJot free?',
     a: 'Yes. ClipJot is free to download and use, with no account, no subscription and no watermark.',
+  },
+  {
+    q: 'Is ClipJot open source?',
+    a: 'Yes. ClipJot is open source under the GNU General Public License v3.0 (GPL-3.0). The full source code is on GitHub at github.com/WellBeCC/ClipJot.',
   },
   {
     q: 'How do I annotate a screenshot from the clipboard?',
@@ -74,6 +79,7 @@ export const softwareJsonLd = (description = DEFAULT_DESCRIPTION) => ({
   downloadUrl: [DOWNLOADS.macos.url, DOWNLOADS.windows.url],
   featureList: FEATURE_LIST,
   isAccessibleForFree: true,
+  license: LICENSE_URL,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   publisher: { '@id': `${SITE_URL}/#organization` },
   sameAs: [REPO_URL],

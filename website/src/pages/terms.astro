@@ -4,7 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
 const base = import.meta.env.BASE_URL;
-const lastUpdated = '2 April 2026';
+const lastUpdated = '13 October 2026';
 ---
 
 <BaseLayout
@@ -31,19 +31,22 @@ const lastUpdated = '2 April 2026';
       <section>
         <h2 class="text-xl font-semibold mb-3">2. Permitted Use</h2>
         <p class="text-[var(--muted-foreground)] leading-relaxed">
-          ClipJot is provided free of charge for personal and professional use. You may use the
-          Application to edit, annotate, and copy images from your clipboard. You may not reverse
-          engineer, decompile, sell, or redistribute the Application without prior written permission.
+          ClipJot is free and open-source software, provided free of charge for personal and
+          professional use. The Application is licensed under the
+          <a href="https://github.com/WellBeCC/ClipJot/blob/main/LICENSE" class="underline hover:text-[var(--foreground)]" target="_blank" rel="noopener noreferrer">GNU General Public License v3.0</a>
+          (GPL-3.0). You may use, study, modify, and redistribute it under the terms of that license.
+          Where these Terms conflict with the GPL-3.0 regarding the Application's software, the
+          GPL-3.0 prevails.
         </p>
       </section>
 
       <section>
         <h2 class="text-xl font-semibold mb-3">3. Intellectual Property</h2>
         <p class="text-[var(--muted-foreground)] leading-relaxed">
-          The Application, including its source code, design, and assets, is the intellectual property
-          of WellBe s.r.o., Nové sady 988/2, 602 00 Brno, Czech Republic, reg. no. 05830931,
+          The Application, including its source code, design, and assets, is copyrighted by
+          WellBe s.r.o., Nové sady 988/2, 602 00 Brno, Czech Republic, reg. no. 05830931,
           registered in the Commercial register maintained by the Regional Court in Brno, file
-          no. C 98394 ("the Developer"). The Flexoki color scheme is used under its open license and
+          no. C 98394 ("the Developer"), and is made available under the GPL-3.0. The Flexoki color scheme is used under its open license and
           credited to Steph Ango.
         </p>
       </section>

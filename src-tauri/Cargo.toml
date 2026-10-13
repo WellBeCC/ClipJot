@@ -3,6 +3,7 @@ name = "ClipJot"
 version = "1.0.9"
 description = "A desktop clipboard image editor"
 authors = ["Martin Večeřa <info@clipjot.app>"]
+license = "GPL-3.0-only"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

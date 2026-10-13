@@ -2,6 +2,7 @@
   "name": "clipjot",
   "private": true,
   "version": "1.0.9",
+  "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",
