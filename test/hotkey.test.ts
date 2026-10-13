@@ -35,6 +35,13 @@ describe("Global Hotkey", () => {
     expect(hotkey).toContain("updateClipboardImage")
   })
 
+  test("activates the clipboard tab on hotkey, after refreshing it", () => {
+    const updateIdx = hotkey.indexOf("updateClipboardImage(null, 0, 0)")
+    const activateIdx = hotkey.indexOf("setActiveTab(clipboardTab.value.id)")
+    expect(updateIdx).toBeGreaterThan(-1)
+    expect(activateIdx).toBeGreaterThan(updateIdx)
+  })
+
   test("supports changing hotkey with fallback", () => {
     expect(hotkey).toContain("changeHotkey")
     expect(hotkey).toContain("unregisterHotkey")
