@@ -1,3 +1,5 @@
+mod clipboard;
+
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, MenuItem, MenuItemBuilder, SubmenuBuilder};
@@ -94,7 +96,12 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![write_file, set_menu_item_enabled, set_tray_mode])
+        .invoke_handler(tauri::generate_handler![
+            write_file,
+            set_menu_item_enabled,
+            set_tray_mode,
+            clipboard::write_clipboard_image
+        ])
         .setup(|app| {
             #[cfg(desktop)]
             {

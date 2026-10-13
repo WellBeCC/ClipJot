@@ -1,5 +1,5 @@
-import { readImage, writeImage } from "@tauri-apps/plugin-clipboard-manager"
-import { Image } from "@tauri-apps/api/image"
+import { readImage } from "@tauri-apps/plugin-clipboard-manager"
+import { invoke } from "@tauri-apps/api/core"
 
 export interface ClipboardImage {
   url: string
@@ -44,12 +44,18 @@ export async function readClipboardImage(): Promise<ClipboardImage | null> {
 /**
  * Write image data to the clipboard.
  * Accepts raw RGBA Uint8Array with dimensions.
+ *
+ * Uses the app's own `write_clipboard_image` command instead of the plugin's
+ * writeImage: on macOS the plugin writes a lazily provided NSImage, which
+ * clipboard history apps (e.g. Paste) don't register as a new clip.
+ * The pixels are sent as the raw IPC body; dimensions go in headers.
  */
 export async function writeClipboardImage(
   rgba: Uint8Array,
   width: number,
   height: number,
 ): Promise<void> {
-  const image = await Image.new(rgba, width, height)
-  await writeImage(image)
+  await invoke("write_clipboard_image", rgba, {
+    headers: { "x-width": String(width), "x-height": String(height) },
+  })
 }

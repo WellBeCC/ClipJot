@@ -57,13 +57,13 @@ describe("Clipboard Composable", () => {
     expect(content).toContain("return null")
   })
 
-  test("useClipboard.ts uses Image.new for write", () => {
+  test("useClipboard.ts writes via the write_clipboard_image command", () => {
     const content = readFileSync(
       resolve(composablesDir, "useClipboard.ts"),
       "utf-8",
     )
-    expect(content).toContain("Image.new")
-    expect(content).toContain("@tauri-apps/api/image")
+    expect(content).toContain('invoke("write_clipboard_image"')
+    expect(content).not.toContain("Image.new")
   })
 
   test("useClipboard.ts uses image.size() for dimensions", () => {
