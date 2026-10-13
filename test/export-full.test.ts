@@ -4,6 +4,7 @@ import { resolve } from "path"
 import {
   serializeAnnotationsToSvg,
   resolveCssColor,
+  svgToDataUrl,
 } from "../src/composables/useExport"
 import type { Annotation } from "../src/types/annotations"
 
@@ -274,8 +275,8 @@ describe("Export atomicity", () => {
     expect(flattenIdx).toBeLessThan(writeIdx)
   })
 
-  test("convertToBlob happens before any clipboard operation", () => {
-    const flattenIdx = exportFile.indexOf("convertToBlob")
+  test("canvasToBlob happens before any clipboard operation", () => {
+    const flattenIdx = exportFile.indexOf("canvasToBlob(")
     const writeIdx = exportFile.indexOf("writeClipboardImage")
     expect(flattenIdx).toBeGreaterThan(-1)
     expect(writeIdx).toBeGreaterThan(-1)
@@ -448,19 +449,13 @@ describe("All layer types", () => {
 // ── Performance (Appendix B.7, B.8) ──
 
 describe("Performance", () => {
-  test("uses createImageBitmap instead of Image + onload (B.7)", () => {
-    // Should NOT use the legacy Image() + onload pattern
-    expect(exportFile).not.toContain("new Image()")
-    expect(exportFile).not.toContain("img.onload")
-
-    // Should use fetch + createImageBitmap
+  test("loads the base raster image via fetch + createImageBitmap (B.7)", () => {
     expect(exportFile).toContain("loadImageBitmap")
     expect(exportFile).toContain("createImageBitmap(blob)")
   })
 
   test("closes ImageBitmap after use to free memory", () => {
     expect(exportFile).toContain("img.close()")
-    expect(exportFile).toContain("svgBitmap.close()")
     expect(exportFile).toContain("bitmap.close()")
   })
 
@@ -517,5 +512,54 @@ describe("ExportResult", () => {
 describe("Error handling", () => {
   test("flattenTab throws on missing image", () => {
     expect(exportFile).toContain("No image to export")
+  })
+})
+
+// ── WebKit SVG rasterization (regression: annotations broke copy/save) ──
+
+describe("WebKit-safe SVG rasterization", () => {
+  const renderFn = exportFile.slice(
+    exportFile.indexOf("async function renderAnnotationsToImage"),
+  )
+
+  test("annotation SVG is never passed to createImageBitmap", () => {
+    // WebKit's createImageBitmap rejects SVG blobs with
+    // "Cannot decode the data in the argument to createImageBitmap"
+    expect(exportFile).not.toContain('"image/svg+xml;charset=utf-8" })')
+    expect(renderFn).not.toContain("createImageBitmap")
+  })
+
+  test("annotation SVG is loaded through Image() via a data URL", () => {
+    expect(renderFn).toContain("loadHtmlImage(svgToDataUrl(")
+    expect(exportFile).toContain("new Image()")
+  })
+
+  test("svgToDataUrl produces a decodable UTF-8 SVG data URL", () => {
+    const svg = serializeAnnotationsToSvg(
+      [
+        {
+          id: "a1",
+          type: "arrow",
+          x: 10,
+          y: 20,
+          endX: 100,
+          endY: 80,
+          controlX: 5,
+          controlY: -5,
+          strokeColor: "#D14D41",
+          strokeWidth: 2,
+        } as Annotation,
+      ],
+      930,
+      272,
+    )
+    const url = svgToDataUrl(svg + "<!-- ěščř # % -->")
+    const prefix = "data:image/svg+xml;charset=utf-8,"
+    expect(url.startsWith(prefix)).toBe(true)
+    // Characters that would break a data URL must be escaped
+    expect(url.slice(prefix.length)).not.toMatch(/[#<>" ]/)
+    expect(decodeURIComponent(url.slice(prefix.length))).toBe(
+      svg + "<!-- ěščř # % -->",
+    )
   })
 })

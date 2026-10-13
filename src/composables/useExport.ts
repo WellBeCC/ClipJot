@@ -36,6 +36,40 @@ async function loadImageBitmap(src: string): Promise<ImageBitmap> {
 }
 
 /**
+ * Load an image through an HTMLImageElement.
+ *
+ * Required for SVG: WebKit's createImageBitmap() cannot decode SVG blobs
+ * ("Cannot decode the data in the argument to createImageBitmap"), so
+ * annotation SVG must go through Image() instead.
+ */
+function loadHtmlImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error("Failed to load annotation SVG"))
+    img.src = src
+  })
+}
+
+/** Create a regular DOM canvas of the given size. */
+function createCanvas(width: number, height: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas")
+  canvas.width = width
+  canvas.height = height
+  return canvas
+}
+
+/** Promise wrapper around HTMLCanvasElement.toBlob. */
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error("Failed to encode canvas as PNG"))
+    }, "image/png")
+  })
+}
+
+/**
  * Flatten a tab's layers into a single PNG blob.
  *
  * Layer compositing order (Unit 23):
@@ -63,8 +97,10 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
   const imgW = img.width
   const imgH = img.height
 
-  // Create full-size working canvas — all layers render at original dimensions
-  const canvas = new OffscreenCanvas(imgW, imgH)
+  // Create full-size working canvas — all layers render at original dimensions.
+  // Regular DOM canvas, not OffscreenCanvas: WebKit's OffscreenCanvas has
+  // known gaps (see docs/solutions Fix 6).
+  const canvas = createCanvas(imgW, imgH)
   const ctx = canvas.getContext("2d")!
 
   // ── Layer 1: Base image ──
@@ -73,9 +109,7 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
 
   // ── Layer 2: Freehand strokes ──
   if (tab.drawingState.strokes.value.length > 0) {
-    const freehandEl = document.createElement("canvas")
-    freehandEl.width = imgW
-    freehandEl.height = imgH
+    const freehandEl = createCanvas(imgW, imgH)
     const freehandCtx = freehandEl.getContext("2d")!
     tab.drawingState.redrawAll(freehandCtx, imgW, imgH)
     ctx.drawImage(freehandEl, 0, 0)
@@ -88,9 +122,7 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
   // doesn't support ctx.filter in WebKit, breaking blur redaction.
   if (tab.redactionState.regions.value.length > 0) {
     // Working canvas with base + freehand composite for redaction source
-    const workEl = document.createElement("canvas")
-    workEl.width = imgW
-    workEl.height = imgH
+    const workEl = createCanvas(imgW, imgH)
     const workCtx = workEl.getContext("2d")!
     workCtx.drawImage(canvas, 0, 0)
 
@@ -108,13 +140,12 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
   // All annotation types (rect, ellipse, arrow, line, callout, text) are
   // batched into a single SVG and rasterized in one pass (Appendix B.8).
   if (tab.annotationState.annotations.value.length > 0) {
-    const svgBitmap = await renderAnnotationsToImage(
+    const svgImage = await renderAnnotationsToImage(
       tab.annotationState.annotations.value,
       imgW,
       imgH,
     )
-    ctx.drawImage(svgBitmap, 0, 0)
-    svgBitmap.close()
+    ctx.drawImage(svgImage, 0, 0, imgW, imgH)
   }
 
   // ── Crop extraction ──
@@ -122,7 +153,7 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
   // Otherwise export the full canvas.
   const crop = tab.cropState.cropBounds.value
   if (crop) {
-    const exportCanvas = new OffscreenCanvas(crop.width, crop.height)
+    const exportCanvas = createCanvas(crop.width, crop.height)
     const exportCtx = exportCanvas.getContext("2d")!
     exportCtx.drawImage(
       canvas,
@@ -135,11 +166,11 @@ export async function flattenTab(tab: Tab): Promise<ExportResult> {
       crop.width,
       crop.height,
     )
-    const blob = await exportCanvas.convertToBlob({ type: "image/png" })
+    const blob = await canvasToBlob(exportCanvas)
     return { blob, width: crop.width, height: crop.height }
   }
 
-  const blob = await canvas.convertToBlob({ type: "image/png" })
+  const blob = await canvasToBlob(canvas)
   return { blob, width: imgW, height: imgH }
 }
 
@@ -160,7 +191,7 @@ export async function copyTabToClipboard(tab: Tab): Promise<void> {
 
   // Step 2: Convert PNG blob to RGBA for Tauri's clipboard API
   const bitmap = await createImageBitmap(blob)
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  const canvas = createCanvas(bitmap.width, bitmap.height)
   const ctx = canvas.getContext("2d")!
   ctx.drawImage(bitmap, 0, 0)
   bitmap.close()
@@ -337,16 +368,21 @@ export function serializeAnnotationsToSvg(
 }
 
 /**
- * Render annotations to an ImageBitmap for compositing onto the export canvas.
- * Builds SVG from annotation data (resolved hex colors), then rasterizes
- * via Blob + createImageBitmap.
+ * Render annotations to an image for compositing onto the export canvas.
+ * Builds SVG from annotation data (resolved hex colors), then loads it as a
+ * data URL through Image(). createImageBitmap() cannot be used here because
+ * WebKit (Tauri's macOS runtime) rejects SVG input.
  */
 async function renderAnnotationsToImage(
   annotations: Annotation[],
   width: number,
   height: number,
-): Promise<ImageBitmap> {
+): Promise<HTMLImageElement> {
   const svgString = serializeAnnotationsToSvg(annotations, width, height)
-  const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" })
-  return createImageBitmap(blob)
+  return loadHtmlImage(svgToDataUrl(svgString))
+}
+
+/** Encode an SVG string as a UTF-8 safe data URL. */
+export function svgToDataUrl(svgString: string): string {
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString)
 }

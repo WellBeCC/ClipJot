@@ -16,8 +16,9 @@ describe("Export Composable", () => {
     expect(exportFile).toContain("export async function copyTabToClipboard");
   });
 
-  test("uses OffscreenCanvas for flattening", () => {
-    expect(exportFile).toContain("OffscreenCanvas");
+  test("uses DOM canvas, not OffscreenCanvas, for flattening (WebKit)", () => {
+    expect(exportFile).not.toContain("new OffscreenCanvas");
+    expect(exportFile).toContain('document.createElement("canvas")');
   });
 
   test("exports as PNG", () => {
@@ -26,7 +27,7 @@ describe("Export Composable", () => {
 
   test("uses atomic export pattern (flatten before clipboard write)", () => {
     // The blob should be created BEFORE any clipboard operation
-    const flattenIndex = exportFile.indexOf("convertToBlob");
+    const flattenIndex = exportFile.indexOf("canvasToBlob(");
     const writeIndex = exportFile.indexOf("writeClipboard");
     expect(flattenIndex).toBeGreaterThan(-1);
     expect(writeIndex).toBeGreaterThan(-1);

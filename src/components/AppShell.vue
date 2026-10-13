@@ -98,6 +98,7 @@ async function handleCopy(): Promise<void> {
     success("Copied to clipboard");
     incrementCopyStats();
   } catch (e) {
+    console.error("[ClipJot] Copy failed:", e);
     error("Copy failed");
   }
 }
